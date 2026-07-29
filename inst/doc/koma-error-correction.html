@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Error Correction in a Small Open Economy Model</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Error Correction in a Small Open Economy
+Model</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(koma)</span></code></pre></div>
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>When a set of variables is cointegrated—meaning they share a common
+long-run stochastic trend—short-run dynamics can be represented using an
+error-correction model (ECM). An ECM decomposes movements into short-run
+adjustments and a long-run equilibrium relationship, with deviations
+from the equilibrium feeding back into short-run growth through an
+error-correction term. For background, see <a href="https://en.wikipedia.org/wiki/Error_correction_model" class="uri">https://en.wikipedia.org/wiki/Error_correction_model</a>.</p>
+<p>In this vignette, we specify a small structural system that includes
+an ECM for exports. We then construct the required level variables,
+prepare the data, and estimate the model.</p>
+<div id="export-ecm-intuition" class="section level2">
+<h2>Export ECM Intuition</h2>
+<p>We omit contemporaneous exchange-rate growth in the short-run
+dynamics, assuming exports do not respond to very short-run
+exchange-rate movements in this vignette.</p>
+<p>The export equation is motivated by a standard export-demand
+relationship. In the long run, export volumes depend on foreign demand,
+proxied by world GDP, and on relative prices or international
+competitiveness, proxied by the exchange rate. If exports, world GDP,
+and the exchange rate are cointegrated, their long-run relationship can
+be written in levels.</p>
+<p>Short-run export growth is then modeled as a function of current
+changes in foreign demand, together with an error-correction term that
+captures the deviation from the long-run equilibrium in the previous
+period. The coefficient on this term measures the speed at which exports
+adjust back toward the long-run relationship following a shock.</p>
+<p>If exports <span class="math inline">\(x_t\)</span>, world GDP <span class="math inline">\(y_t\)</span>, and the exchange rate <span class="math inline">\(q_t\)</span> are cointegrated, the long-run
+equilibrium relationship can be written as <span class="math display">\[
+x_t = \alpha + \beta_y y_t + \beta_q q_t + u_t .
+\]</span></p>
+<p>The deviation from this equilibrium in the previous period defines
+the error-correction term, <span class="math display">\[
+\mathrm{ECT}_{t-1}
+= x_{t-1} - \alpha - \beta_y y_{t-1} - \beta_q q_{t-1} .
+\]</span></p>
+<p>A minimal one-lag ECM for export growth is then <span class="math display">\[
+\Delta x_t
+= \gamma
++ \phi\,\Delta x_{t-1}
++ \theta\,\Delta y_t
++ \lambda\,\mathrm{ECT}_{t-1}
++ \varepsilon_t .
+\]</span></p>
+<p>Substituting the error-correction term into the ECM and expanding
+yields <span class="math display">\[
+\begin{aligned}
+\Delta x_t
+&amp;= \gamma
++ \phi\,\Delta x_{t-1}
++ \theta\,\Delta y_t \\
+&amp;\quad
++ \lambda x_{t-1}
+- \lambda\alpha
+- \lambda\beta_y y_{t-1}
+- \lambda\beta_q q_{t-1}
++ \varepsilon_t .
+\end{aligned}
+\]</span></p>
+<p>This is the form estimated in the model, where lagged levels enter
+directly. The coefficient <span class="math inline">\(\lambda\)</span>
+is the speed of adjustment toward the long-run equilibrium.</p>
+<p>The long-run coefficients are recovered as <span class="math display">\[
+\beta_y = -\frac{\text{coef}(y_{t-1})}{\lambda},
+\qquad
+\beta_q = -\frac{\text{coef}(q_{t-1})}{\lambda}.
+\]</span></p>
+</div>
+</div>
+<div id="define-the-sem" class="section level1">
+<h1>Define the SEM</h1>
+<p>We now translate the error-correction representation into a
+structural system that can be estimated directly. Rather than including
+the error-correction term explicitly, the model is written with lagged
+level variables. This formulation is algebraically equivalent to the ECM
+expansion above and allows the speed-of-adjustment and long-run
+relationships to be recovered from the estimated coefficients.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>equations <span class="ot">&lt;-</span> <span class="st">&quot;consumption ~ gdp + consumption.L(1),</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="st">investment ~ investment.L(1),</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="st">exports ~ world_gdp + exports.L(1) + exports_level.L(1) + world_gdp_level.L(1) + exchange_rate_level.L(1),</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="st">imports ~ exports + consumption + investment + imports.L(1),</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="st">gdp == 0.6*consumption + 0.6*domestic_demand + 0.5*exports - 0.4*imports,</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="st">domestic_demand == 0.6*consumption + 0.4*investment,</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="st">exports_level == 1*exports + 1*exports_level.L(1),</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="st">world_gdp_level == 1*world_gdp + 1*world_gdp_level.L(1),</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="st">exchange_rate_level == 1*exchange_rate + 1*exchange_rate_level.L(1)&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>exogenous_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;world_gdp&quot;</span>, <span class="st">&quot;exchange_rate&quot;</span>)</span></code></pre></div>
+</div>
+<div id="create-the-sem" class="section level1">
+<h1>Create the SEM</h1>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>sys_eq <span class="ot">&lt;-</span> <span class="fu">system_of_equations</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>    <span class="at">equations =</span> equations,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>    <span class="at">exogenous_variables =</span> exogenous_variables</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">print</span>(sys_eq)</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt; ── System of Equations ─────────────────────────────────────────────────────────</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="co">#&gt;         consumption ~  constant + gdp + consumption.L(1)</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="co">#&gt;          investment ~  constant + investment.L(1)</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co">#&gt;             exports ~  constant + world_gdp + exports.L(1) + exports_level.L(1) + world_gdp_level.L(1) + exchange_rate_level.L(1)</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co">#&gt;             imports ~  constant + exports + consumption + investment + imports.L(1)</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="co">#&gt;                 gdp == 0.6 * consumption + 0.6 * domestic_demand + 0.5 * exports-0.4 * imports</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="co">#&gt;     domestic_demand == 0.6 * consumption + 0.4 * investment</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;       exports_level == 1 * exports + 1 * exports_level.L(1)</span></span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;     world_gdp_level == 1 * world_gdp + 1 * world_gdp_level.L(1)</span></span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt; exchange_rate_level == 1 * exchange_rate + 1 * exchange_rate_level.L(1)</span></span></code></pre></div>
+</div>
+<div id="preparing-the-data" class="section level1">
+<h1>Preparing the Data</h1>
+<p><code>koma</code> is estimated in growth rates, so error correction
+terms need to enter in levels. We create level terms as
+<code>series_type = &quot;level&quot;</code> with <code>method = &quot;none&quot;</code> so
+<code>rate()</code> leaves them unchanged during estimation.</p>
+<p>We use <code>small_open_economy</code>, which provides the needed
+series in levels.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>?small_open_economy</span></code></pre></div>
+<p>Convert the base series to <code>ets</code> objects first, then add
+the level terms for error correction. Adding the level terms after the
+base conversion avoids overwriting them when the list is rebuilt.</p>
+<p>We take logs to make the long-run relationship linear in levels and
+to match the <code>diff_log</code> transformation used for growth rates.
+Multiplying by 100 keeps the level terms on the same scale as
+<code>diff_log</code>, which also returns percent changes.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>ts_data <span class="ot">&lt;-</span> small_open_economy[<span class="fu">c</span>(</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>    <span class="st">&quot;consumption&quot;</span>, <span class="st">&quot;investment&quot;</span>, <span class="st">&quot;exports&quot;</span>, <span class="st">&quot;imports&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    <span class="st">&quot;gdp&quot;</span>, <span class="st">&quot;domestic_demand&quot;</span>, <span class="st">&quot;world_gdp&quot;</span>, <span class="st">&quot;exchange_rate&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>)]</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>series <span class="ot">&lt;-</span> <span class="fu">names</span>(ts_data)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>ts_data <span class="ot">&lt;-</span> <span class="fu">lapply</span>(series, <span class="cf">function</span>(x) {</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>    <span class="fu">as_ets</span>(ts_data[[x]],</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>        <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    )</span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>})</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a><span class="fu">names</span>(ts_data) <span class="ot">&lt;-</span> series</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>ts_data<span class="sc">$</span>exports_level <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(<span class="fu">log</span>(ts_data<span class="sc">$</span>exports) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>)</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>ts_data<span class="sc">$</span>world_gdp_level <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(<span class="fu">log</span>(ts_data<span class="sc">$</span>world_gdp) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>)</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>ts_data<span class="sc">$</span>exchange_rate_level <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(<span class="fu">log</span>(ts_data<span class="sc">$</span>exchange_rate) <span class="sc">*</span> <span class="dv">100</span>,</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="estimation-and-forecast-dates" class="section level1">
+<h1>Estimation and Forecast Dates</h1>
+<p>With the data prepared, define the estimation and forecast
+windows.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>    <span class="at">estimation =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">1996</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2019</span>, <span class="dv">4</span>)),</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    <span class="at">forecast =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2024</span>, <span class="dv">4</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="estimating-the-model" class="section level1">
+<h1>Estimating the Model</h1>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>    sys_eq,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    <span class="at">ts_data =</span> ts_data,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    <span class="at">dates =</span> dates</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt; ── Gibbs Sampler Settings ──────────────────────────────────────────────────────</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt; ── System Wide Settings ──</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt; • Number of draws (`ndraws`): 2000</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; • Burn-in ratio (`burnin_ratio`): 0.5</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="co">#&gt; • Burn-in (`burnin`): 1000</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="co">#&gt; • Store frequency (`nstore`): 1</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="co">#&gt; • Number of saved draws (`nsave`): 1000</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="co">#&gt; • Tau (`tau`): 1.1</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="co">#&gt; ── Estimation ──────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="fu">print</span>(estimates)</span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="co">#&gt; ── Estimates ───────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="co">#&gt;         consumption ~  0.35 - 0.01 * gdp  +  0.1 * consumption.L(1)</span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="co">#&gt;          investment ~  0.45  +  0.21 * investment.L(1)</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="co">#&gt;             exports ~  - 1095.34  +  2.88 * world_gdp - 0.2 * exports.L(1) - 0.24 * exports_level.L(1)  +  0.56 * world_gdp_level.L(1)  +  0.06 * exchange_rate_level.L(1)</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="co">#&gt;             imports ~  0.05  +  0.04 * exports  +  1.46 * consumption  +  0.85 * investment - 0.13 * imports.L(1)</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="co">#&gt;                 gdp == 0.6 * consumption  +  0.6 * domestic_demand  +  0.5 * exports - 0.4 * imports</span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="co">#&gt;     domestic_demand == 0.6 * consumption  +  0.4 * investment</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="co">#&gt;       exports_level == 1 * exports  +  1 * exports_level.L(1)</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="co">#&gt;     world_gdp_level == 1 * world_gdp  +  1 * world_gdp_level.L(1)</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="co">#&gt; exchange_rate_level == 1 * exchange_rate  +  1 * exchange_rate_level.L(1)</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">summary</span>(estimates, <span class="at">variables =</span> <span class="st">&quot;exports&quot;</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="co">#&gt; =============================================</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="co">#&gt;                           exports            </span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co">#&gt; ---------------------------------------------</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="co">#&gt; constant                   -1095.34          </span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="co">#&gt;                           [-1670.29; -510.33]</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">#&gt; exports.L(1)                  -0.20          </span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">#&gt;                           [   -0.37;   -0.02]</span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="co">#&gt; exports_level.L(1)            -0.24          </span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="co">#&gt;                           [   -0.37;   -0.11]</span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="co">#&gt; world_gdp_level.L(1)           0.56          </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co">#&gt;                           [    0.26;    0.85]</span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="co">#&gt; exchange_rate_level.L(1)       0.06          </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="co">#&gt;                           [    0.02;    0.11]</span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="co">#&gt; world_gdp                      2.88          </span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="co">#&gt;                           [    1.98;    3.75]</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="co">#&gt; =============================================</span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="co">#&gt; Posterior mean (90% credible interval: [5.0%, 95.0%])</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="co">#&gt; Estimation period: 1996 Q1 - 2019 Q4</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>ecm_stats <span class="ot">&lt;-</span> <span class="fu">summary</span>(estimates, <span class="at">variables =</span> <span class="st">&quot;exports&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>ecm_coef <span class="ot">&lt;-</span> ecm_stats[[<span class="st">&quot;exports&quot;</span>]]<span class="sc">@</span>coef</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>adjustment_speed <span class="ot">&lt;-</span> ecm_coef[<span class="st">&quot;exports_level.L(1)&quot;</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>long_run_world_gdp <span class="ot">&lt;-</span> <span class="sc">-</span>ecm_coef[<span class="st">&quot;world_gdp_level.L(1)&quot;</span>] <span class="sc">/</span> adjustment_speed</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>long_run_exchange_rate <span class="ot">&lt;-</span> <span class="sc">-</span>ecm_coef[<span class="st">&quot;exchange_rate_level.L(1)&quot;</span>] <span class="sc">/</span> adjustment_speed</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">sprintf</span>(</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>    <span class="st">&quot;Adjustment speed: %.3f, Long-run world GDP: %.3f, Exchange rate: %.3f&quot;</span>,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>    adjustment_speed,</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>    long_run_world_gdp,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>    long_run_exchange_rate</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>)</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Adjustment speed: -0.243, Long-run world GDP: 2.291, Exchange rate: 0.258&quot;</span></span></code></pre></div>
+<p>The adjustment speed is -0.24, which is negative and implies about
+24% of the gap closes each period. The long-run elasticities imply that
+a 1% rise in world GDP is associated with roughly 2.29% higher exports
+in the long run, while a 1% increase in the exchange-rate index implies
+0.26% higher exports if higher values indicate depreciation (here the
+exchange rate is CHF/EUR, so higher values mean depreciation; flip the
+sign if the index is defined the other way).</p>
+</div>
+<div id="forecasting" class="section level1">
+<h1>Forecasting</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>estimates<span class="sc">$</span>ts_data[sys_eq<span class="sc">$</span>endogenous_variables] <span class="ot">&lt;-</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>    <span class="fu">lapply</span>(sys_eq<span class="sc">$</span>endogenous_variables, <span class="cf">function</span>(x) {</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>        stats<span class="sc">::</span><span class="fu">window</span>(estimates<span class="sc">$</span>ts_data[[x]], <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2022</span>, <span class="dv">4</span>))</span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a>    })</span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a>forecasts <span class="ot">&lt;-</span> <span class="fu">forecast</span>(</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>    estimates,</span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>    <span class="at">dates =</span> dates</span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>)</span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; ── Forecast ────────────────────────────────────────────────────────────────────</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="fu">print</span>(forecasts)</span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; &lt;koma_ts&gt;</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; attributes:</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt;   series_type: list[11]</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt;   method: list[11]</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt;   anker: list[11]</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; series:</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt;         consumption investment exports imports    gdp domestic_demand</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; 2023 Q1      0.3835     0.4092  0.5843  1.0355 0.3443          0.3938</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; 2023 Q2      0.4027     0.5920  0.8020  1.0624 0.5047          0.4784</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; 2023 Q3      0.3956     0.5937  0.7067  1.0681 0.4484          0.4748</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; 2023 Q4      0.3983     0.5206  0.3096  0.8265 0.3315          0.4472</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; 2024 Q1      0.3938     0.5234  1.0375  1.0359 0.6080          0.4456</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt; 2024 Q2      0.3827     0.5898  0.5726  1.0264 0.3847          0.4656</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="co">#&gt; 2024 Q3      0.4046     0.5451  1.2774  1.1153 0.7118          0.4608</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt; 2024 Q4      0.3899     0.5378  0.4558  1.0066 0.3287          0.4491</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt;         exports_level world_gdp_level exchange_rate_level world_gdp</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; 2023 Q1      1168.680        2474.282             -0.7646    0.4827</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; 2023 Q2      1169.482        2474.690             -2.1510    0.4083</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt; 2023 Q3      1170.189        2475.116             -3.9379    0.4259</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt; 2023 Q4      1170.498        2475.407             -4.6881    0.2906</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="co">#&gt; 2024 Q1      1171.536        2475.865             -5.2093    0.4586</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="co">#&gt; 2024 Q2      1172.109        2476.261             -2.6797    0.3955</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="co">#&gt; 2024 Q3      1173.386        2476.770             -4.9959    0.5096</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="co">#&gt; 2024 Q4      1173.842        2477.210             -6.6168    0.4393</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="co">#&gt;         exchange_rate</span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="co">#&gt; 2023 Q1        0.9217</span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="co">#&gt; 2023 Q2       -1.3863</span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a><span class="co">#&gt; 2023 Q3       -1.7869</span></span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="co">#&gt; 2023 Q4       -0.7502</span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a><span class="co">#&gt; 2024 Q1       -0.5212</span></span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="co">#&gt; 2024 Q2        2.5295</span></span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a><span class="co">#&gt; 2024 Q3       -2.3162</span></span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a><span class="co">#&gt; 2024 Q4       -1.6209</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">rate</span>(forecasts<span class="sc">$</span>mean<span class="sc">$</span>exports)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="co">#&gt; &lt;koma_ts&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co">#&gt; attributes:</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co">#&gt;   series_type:  chr &quot;rate&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co">#&gt;   method:  chr &quot;diff_log&quot;</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="co">#&gt;   anker:  num [1:2] 118298 2023</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="co">#&gt; series:</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co">#&gt;           Qtr1      Qtr2      Qtr3      Qtr4</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="co">#&gt; 2023 0.5843133 0.8019977 0.7066850 0.3095985</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co">#&gt; 2024 1.0375328 0.5726203 1.2773538 0.4558117</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="fu">level</span>(forecasts<span class="sc">$</span>mean<span class="sc">$</span>exports)</span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="co">#&gt; &lt;koma_ts&gt;</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="co">#&gt; attributes:</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="co">#&gt;   series_type:  chr &quot;level&quot;</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="co">#&gt;   method:  chr &quot;diff_log&quot;</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="co">#&gt; series:</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="co">#&gt;          Qtr1     Qtr2     Qtr3     Qtr4</span></span>
+<span id="cb11-20"><a href="#cb11-20" tabindex="-1"></a><span class="co">#&gt; 2022                            118297.6</span></span>
+<span id="cb11-21"><a href="#cb11-21" tabindex="-1"></a><span class="co">#&gt; 2023 118990.8 119949.0 120799.6 121174.2</span></span>
+<span id="cb11-22"><a href="#cb11-22" tabindex="-1"></a><span class="co">#&gt; 2024 122438.0 123141.1 124724.1 125293.9</span></span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

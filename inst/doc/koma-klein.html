@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Estimating Klein’s Model I</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Estimating Klein’s Model I</h1>
+
+
+
+<div id="equations-of-kleins-model" class="section level1">
+<h1>Equations of Klein’s Model</h1>
+<div id="stochastic-equations" class="section level2">
+<h2>Stochastic equations</h2>
+<p><span class="math display">\[
+\begin{aligned}
+\text{consumption}\quad   C_t     &amp;= \beta_0 + \alpha_1 P_t +
+\alpha_2 P_{t-1}
+                                   + \alpha_3\bigl(W^p_t + W^g_t\bigr)
+                                   + \varepsilon_{1t},\\
+\text{investment}\quad    I_t     &amp;= \beta_0  + \beta_1 P_t +
+\beta_2 P_{t-1}
+                                   + \beta_3 K_{t-1}
+                                   + \varepsilon_{2t},\\
+\text{private wages}\quad W^p_t   &amp;= \gamma_0 + \gamma_1 Y_t +
+\gamma_2 Y_{t-1}
+                                   + \gamma_3 A_t
+                                   + \varepsilon_{3t}.
+\end{aligned}
+\]</span></p>
+<p>The <span class="math inline">\(\alpha\)</span>’s, <span class="math inline">\(\beta\)</span>’s, and <span class="math inline">\(\gamma\)</span>’s are the coefficients of the
+model. <span class="math inline">\(P_t\)</span> is the private profits,
+<span class="math inline">\(W^p_t\)</span> is the private wages, <span class="math inline">\(W^g_t\)</span> is the government wages, <span class="math inline">\(K_{t-1}\)</span> is the capital stock at time
+<span class="math inline">\(t-1\)</span>, and <span class="math inline">\(A_t\)</span> is a time trend. The <span class="math inline">\(\varepsilon_{it}\)</span> are stochastic error
+terms.</p>
+</div>
+<div id="equilibrium-condition" class="section level2">
+<h2>Equilibrium condition</h2>
+<p><span class="math display">\[
+\begin{aligned}
+\text{equilibrium demand}\quad Y_t &amp;= C_t + I_t + G_t
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(Y_t\)</span> is the equilibrium demand,
+<span class="math inline">\(C_t\)</span> is the consumption, <span class="math inline">\(I_t\)</span> is the investment, and <span class="math inline">\(G_t\)</span> is the government spending.</p>
+</div>
+<div id="identities" class="section level2">
+<h2>Identities</h2>
+<p><span class="math display">\[
+\begin{aligned}
+\text{equilibrium demand}\quad Y_t &amp;= C_t + I_t + G_t\\
+\text{private profits}\quad P_t &amp;= Y_t - T_t - W^p_t\\
+\text{capital stock}\quad K_t &amp;= K_{t-1} + I_t
+\end{aligned}
+\]</span></p>
+<p>Here, <span class="math inline">\(T_t\)</span> represents taxes,
+<span class="math inline">\(K_t\)</span> denotes the capital stock at
+time <span class="math inline">\(t\)</span>, and <span class="math inline">\(G_t\)</span> signifies government spending.</p>
+</div>
+</div>
+<div id="defining-kleins-model-in-r" class="section level1">
+<h1>Defining Klein’s Model in R</h1>
+<p>To estimate and forecast this model, we need to specify the
+equations, the exogenous variables, and the date ranges for estimation
+and forecasting.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>equations <span class="ot">&lt;-</span> <span class="st">&quot;consumption ~ profits + profits.L(1) + total_wages,</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="st">investment ~ profits + profits.L(1) + capital_stock.L(1),</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="st">wages ~ gdp + gdp.L(1) + time_trend,</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="st">gdp == (n_consumption/n_gdp)*consumption + (n_investment/n_gdp)*investment + (n_government/n_gdp)*government,</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="st">profits == (n_gdp/n_profits)*gdp - (n_taxes/n_profits)*taxes - (n_wages/n_profits)*wages,</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="st">capital_stock == 1.001*capital_stock.L(1) + 0.0002*investment,</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="st">total_wages == (n_wages/n_total_wages)*wages + (n_government_wages/n_total_wages)*government_wages&quot;</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>exogenous_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;government&quot;</span>, <span class="st">&quot;government_wages&quot;</span>, <span class="st">&quot;taxes&quot;</span>, <span class="st">&quot;time_trend&quot;</span>)</span></code></pre></div>
+<p>The <code>equations</code> string contains the model equations, while
+<code>exogenous_variables</code> lists the exogenous variables. The
+<code>.L(1)</code> notation indicates a lag of one period. For further
+details on the syntax, please refer to the <a href="koma-equations.html">equation syntax documentation</a>.</p>
+</div>
+<div id="creating-the-sem" class="section level1">
+<h1>Creating the SEM</h1>
+<p>The <code>system_of_equations</code> function is used to create a
+system of equations object, which can then be used for estimation and
+forecasting.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(koma)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>sys_eq <span class="ot">&lt;-</span> <span class="fu">system_of_equations</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">equations =</span> equations,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">exogenous_variables =</span> exogenous_variables</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">print</span>(sys_eq)</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="do">## ── System of Equations ─────────────────────────────────────────────────────────</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="do">##   consumption ~  constant + profits + profits.L(1) + total_wages</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="do">##    investment ~  constant + profits + profits.L(1) + capital_stock.L(1)</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="do">##         wages ~  constant + gdp + gdp.L(1) + time_trend</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="do">##           gdp == (n_consumption/n_gdp) * consumption + (n_investment/n_gdp) * investment + (n_government/n_gdp) * government</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="do">##       profits == (n_gdp/n_profits) * gdp-(n_taxes/n_profits) * taxes-(n_wages/n_profits) * wages</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="do">## capital_stock == 1.001 * capital_stock.L(1) + 0.0002 * investment</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="do">##   total_wages == (n_wages/n_total_wages) * wages + (n_government_wages/n_total_wages) * government_wages</span></span></code></pre></div>
+</div>
+<div id="defing-the-estimation-and-forecast-dates" class="section level1">
+<h1>Defing the Estimation and Forecast Dates</h1>
+<p>Now, we need to specify the dates for estimation and forecasting.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">estimation =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">1990</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">4</span>)),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">forecast =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2021</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">4</span>)),</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>  <span class="at">dynamic_weights =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">1990</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">4</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="preparing-the-data" class="section level1">
+<h1>Preparing the Data</h1>
+<p>We will use the <code>klein</code> dataset, which contains the
+required variables for the model. This dataset is a list of standard
+time series (<code>ts</code>) objects, where each object corresponds to
+a variable in the model. You can explore the dataset by using the
+<code>?klein</code> command to view its documentation and structure.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>?klein</span></code></pre></div>
+<p>To prepare the dataset for use with the <code>koma</code> package, we
+need to convert the <code>ts</code> objects to the <code>ets</code>
+format using the <code>as_ets</code> function.</p>
+<p>The model is estimated in growth rates. The <code>klein</code>
+dataset is in levels. We use the <code>ets</code> to tell the model that
+the data is in levels and how to convert it to growth rates.
+<code>ets</code> is generalized to accept any additional attributes.
+Below we use this feature to save the series’ value_type (real or
+nominal).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Some series in the klein dataset are nominal. We need to deflate them using the GDP deflator.</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>klein<span class="sc">$</span>profits <span class="ot">&lt;-</span> klein<span class="sc">$</span>n_profits <span class="sc">/</span> (klein<span class="sc">$</span>d_gdp <span class="sc">/</span> <span class="dv">100</span>)</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>klein<span class="sc">$</span>capital_stock <span class="ot">&lt;-</span> klein<span class="sc">$</span>n_capital_stock <span class="sc">/</span> (klein<span class="sc">$</span>d_gdp <span class="sc">/</span> <span class="dv">100</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>klein<span class="sc">$</span>wages <span class="ot">&lt;-</span> klein<span class="sc">$</span>n_wages <span class="sc">/</span> (klein<span class="sc">$</span>d_gdp <span class="sc">/</span> <span class="dv">100</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>klein<span class="sc">$</span>government_wages <span class="ot">&lt;-</span> klein<span class="sc">$</span>n_government_wages <span class="sc">/</span> (klein<span class="sc">$</span>d_gdp <span class="sc">/</span> <span class="dv">100</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>klein<span class="sc">$</span>taxes <span class="ot">&lt;-</span> klein<span class="sc">$</span>n_taxes <span class="sc">/</span> (klein<span class="sc">$</span>d_gdp <span class="sc">/</span> <span class="dv">100</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>real_series <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>  <span class="st">&quot;gdp&quot;</span>, <span class="st">&quot;consumption&quot;</span>, <span class="st">&quot;investment&quot;</span>, <span class="st">&quot;profits&quot;</span>, <span class="st">&quot;capital_stock&quot;</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="st">&quot;government&quot;</span>, <span class="st">&quot;wages&quot;</span>, <span class="st">&quot;government_wages&quot;</span>, <span class="st">&quot;taxes&quot;</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>real_ts_data <span class="ot">&lt;-</span> <span class="fu">lapply</span>(real_series, <span class="cf">function</span>(x) {</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>  <span class="fu">as_ets</span>(klein[[x]],</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span>, <span class="at">value_type =</span> <span class="st">&quot;real&quot;</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>  )</span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>})</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="fu">names</span>(real_ts_data) <span class="ot">&lt;-</span> real_series</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>real_ts_data<span class="sc">$</span>total_wages <span class="ot">&lt;-</span> real_ts_data<span class="sc">$</span>government_wages <span class="sc">+</span> real_ts_data<span class="sc">$</span>wages</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co"># net exports can be negative, we thus want to use percentage change instead of log difference</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>real_ts_data<span class="sc">$</span>net_exports <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(klein<span class="sc">$</span>net_exports,</span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>  <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;percentage&quot;</span>, <span class="at">value_type =</span> <span class="st">&quot;real&quot;</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>)</span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co"># To compute the weights in the model, we include the nominal series in the dataset as well.</span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>nominal_series <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a>  <span class="st">&quot;n_gdp&quot;</span>, <span class="st">&quot;n_investment&quot;</span>, <span class="st">&quot;n_government&quot;</span>, <span class="st">&quot;n_government_wages&quot;</span>,</span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>  <span class="st">&quot;n_taxes&quot;</span>, <span class="st">&quot;n_profits&quot;</span>, <span class="st">&quot;n_wages&quot;</span>, <span class="st">&quot;n_consumption&quot;</span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a>)</span>
+<span id="cb5-31"><a href="#cb5-31" tabindex="-1"></a>nominal_ts_data <span class="ot">&lt;-</span> <span class="fu">lapply</span>(nominal_series, <span class="cf">function</span>(x) {</span>
+<span id="cb5-32"><a href="#cb5-32" tabindex="-1"></a>  <span class="fu">as_ets</span>(klein[[x]],</span>
+<span id="cb5-33"><a href="#cb5-33" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span>, <span class="at">value_type =</span> <span class="st">&quot;nominal&quot;</span></span>
+<span id="cb5-34"><a href="#cb5-34" tabindex="-1"></a>  )</span>
+<span id="cb5-35"><a href="#cb5-35" tabindex="-1"></a>})</span>
+<span id="cb5-36"><a href="#cb5-36" tabindex="-1"></a><span class="fu">names</span>(nominal_ts_data) <span class="ot">&lt;-</span> nominal_series</span>
+<span id="cb5-37"><a href="#cb5-37" tabindex="-1"></a></span>
+<span id="cb5-38"><a href="#cb5-38" tabindex="-1"></a>nominal_ts_data<span class="sc">$</span>n_total_wages <span class="ot">&lt;-</span> nominal_ts_data<span class="sc">$</span>n_government_wages <span class="sc">+</span> nominal_ts_data<span class="sc">$</span>n_wages</span>
+<span id="cb5-39"><a href="#cb5-39" tabindex="-1"></a></span>
+<span id="cb5-40"><a href="#cb5-40" tabindex="-1"></a><span class="co"># Combining the real and nominal series</span></span>
+<span id="cb5-41"><a href="#cb5-41" tabindex="-1"></a>ts_data <span class="ot">&lt;-</span> <span class="fu">c</span>(real_ts_data, nominal_ts_data)</span>
+<span id="cb5-42"><a href="#cb5-42" tabindex="-1"></a></span>
+<span id="cb5-43"><a href="#cb5-43" tabindex="-1"></a><span class="co"># Adding the time trend</span></span>
+<span id="cb5-44"><a href="#cb5-44" tabindex="-1"></a>ts_data<span class="sc">$</span>time_trend <span class="ot">&lt;-</span> <span class="fu">ets</span>(<span class="fu">seq_len</span>(<span class="fu">length</span>(klein<span class="sc">$</span>taxes)),</span>
+<span id="cb5-45"><a href="#cb5-45" tabindex="-1"></a>  <span class="at">start =</span> stats<span class="sc">::</span><span class="fu">start</span>(ts_data<span class="sc">$</span>taxes), <span class="at">frequency =</span> <span class="dv">4</span>,</span>
+<span id="cb5-46"><a href="#cb5-46" tabindex="-1"></a>  <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span>, <span class="at">value_type =</span> <span class="cn">NA</span></span>
+<span id="cb5-47"><a href="#cb5-47" tabindex="-1"></a>)</span></code></pre></div>
+<p>With the data prepared, we can now proceed to estimate the model.
+Before forecasting, however, we need to truncate the endogenous
+variables to ensure they only include data up to the forecast start
+date.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>ts_data[sys_eq<span class="sc">$</span>endogenous_variables] <span class="ot">&lt;-</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">lapply</span>(sys_eq<span class="sc">$</span>endogenous_variables, <span class="cf">function</span>(x) {</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    stats<span class="sc">::</span><span class="fu">window</span>(ts_data[[x]], <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">4</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  })</span></code></pre></div>
+</div>
+<div id="estimating-the-model" class="section level1">
+<h1>Estimating the Model</h1>
+<p>The names of the list elements should match the variable names used
+in the equations. Now, we can estimate the model using the
+<code>estimate</code> function.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  sys_eq,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">ts_data =</span> ts_data,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">dates =</span> dates</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="do">## ── Gibbs Sampler Settings ──────────────────────────────────────────────────────</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="do">## ── System Wide Settings ──</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="do">##   • Number of draws (`ndraws`): 2000</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="do">##   • Burn-in ratio (`burnin_ratio`): 0.5</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="do">##   • Burn-in (`burnin`): 1000</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="do">##   • Store frequency (`nstore`): 1</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="do">##   • Number of saved draws (`nsave`): 1000</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="do">##   • Tau (`tau`): 1.1</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="do">## ── Estimation ──────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="do">## ── ⚠ MCMC Acceptance Probability Warnings ──────────────────────────────────────</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="do">## • investment: 61.2%</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="do">## • wages: 60.0%</span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="do">## ℹ Some acceptance probabilities are outside the recommended range (20%-60%).</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="do">## Consider revising the equations, tuning each equation&#39;s tau, or adjusting your priors.</span></span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="fu">print</span>(estimates)</span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="do">## ── Estimates ───────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="do">##   consumption ~  - 0.11  +  0.12 * profits - 0.03 * profits.L(1)  +  1.11 * total_wages</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="do">##    investment ~  - 0.86  +  0.38 * profits  +  0.15 * profits.L(1)  +  1.57 * capital_stock.L(1)</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="do">##         wages ~  - 0.63  +  0.94 * gdp  +  0.42 * gdp.L(1)  +  0 * time_trend</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="do">##           gdp == (n_consumption/n_gdp) * consumption  +  (n_investment/n_gdp) * investment  +  (n_government/n_gdp) * government</span></span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="do">##       profits == (n_gdp/n_profits) * gdp - (n_taxes/n_profits) * taxes - (n_wages/n_profits) * wages</span></span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="do">## capital_stock == 1.001 * capital_stock.L(1)  +  0.0002 * investment</span></span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a><span class="do">##   total_wages == (n_wages/n_total_wages) * wages  +  (n_government_wages/n_total_wages) * government_wages</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">summary</span>(estimates)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="do">## ==================================================================</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="do">##                     consumption     investment      wages         </span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="do">## ------------------------------------------------------------------</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="do">## constant             -0.11           -0.86           -0.63        </span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="do">##                     [-0.31;  0.07]  [-1.73; -0.01]  [-1.24; -0.04]</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="do">## profits.L(1)         -0.03            0.15                        </span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="do">##                     [-0.05; -0.00]  [ 0.07;  0.24]                </span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="do">## profits               0.12            0.38                        </span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="do">##                     [ 0.09;  0.16]  [ 0.21;  0.55]                </span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="do">## total_wages           1.11                                        </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="do">##                     [ 0.97;  1.26]                                </span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="do">## capital_stock.L(1)                    1.57                        </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="do">##                                     [ 0.54;  2.61]                </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="do">## gdp.L(1)                                              0.42        </span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="do">##                                                     [ 0.30;  0.54]</span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="do">## time_trend                                            0.00        </span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="do">##                                                     [-0.00;  0.01]</span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="do">## gdp                                                   0.94        </span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="do">##                                                     [ 0.79;  1.10]</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="do">## ==================================================================</span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="do">## Posterior mean (90% credible interval: [5.0%, 95.0%])</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="do">## Estimation period: 1990 Q1 - 2020 Q4</span></span></code></pre></div>
+<p>To see how to run the estimation in parallel, refer to the <a href="koma-parallel.html">parallel estimation vignette</a>.</p>
+</div>
+<div id="forecasting" class="section level1">
+<h1>Forecasting</h1>
+<p>To forecast the model, we can use the <code>forecast</code> function.
+This function will generate forecasts for the specified date range.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>forecasts <span class="ot">&lt;-</span> <span class="fu">forecast</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  estimates,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>  <span class="at">dates =</span> dates</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="do">## ── Forecast ────────────────────────────────────────────────────────────────────</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">print</span>(forecasts)</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="do">## &lt;koma_ts&gt;</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="do">## attributes:</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="do">##   series_type: list[11]</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="do">##   method: list[11]</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="do">##   value_type: list[11]</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="do">##   anker: list[11]</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a><span class="do">## series:</span></span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a><span class="do">##         consumption investment   wages     gdp profits capital_stock</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a><span class="do">## 2021 Q1     -1.5774    -1.2003 -0.5310 -1.0500 -8.9464        2.5034</span></span>
+<span id="cb9-18"><a href="#cb9-18" tabindex="-1"></a><span class="do">## 2021 Q2     -0.4905     2.0575 -0.6205 -0.1465  0.0599        2.5063</span></span>
+<span id="cb9-19"><a href="#cb9-19" tabindex="-1"></a><span class="do">## 2021 Q3     -1.6419     1.1173 -1.0260 -0.9666 -6.1573        2.5090</span></span>
+<span id="cb9-20"><a href="#cb9-20" tabindex="-1"></a><span class="do">## 2021 Q4     -1.0336     1.5051 -0.7795 -0.4332 -1.9251        2.5118</span></span>
+<span id="cb9-21"><a href="#cb9-21" tabindex="-1"></a><span class="do">## 2022 Q1     -0.8413     2.2681 -0.4939 -0.3039 -1.5806        2.5148</span></span>
+<span id="cb9-22"><a href="#cb9-22" tabindex="-1"></a><span class="do">## 2022 Q2     -1.1360     1.8952 -0.5740 -0.4848 -2.7348        2.5177</span></span>
+<span id="cb9-23"><a href="#cb9-23" tabindex="-1"></a><span class="do">## 2022 Q3     -1.9255     0.4481 -1.2995 -1.1414 -6.4549        2.5203</span></span>
+<span id="cb9-24"><a href="#cb9-24" tabindex="-1"></a><span class="do">## 2022 Q4     -2.3396    -0.0335 -1.7466 -1.3417 -6.7648        2.5228</span></span>
+<span id="cb9-25"><a href="#cb9-25" tabindex="-1"></a><span class="do">## 2023 Q1     -2.3892    -0.1311 -1.9157 -1.4071 -6.7796        2.5253</span></span>
+<span id="cb9-26"><a href="#cb9-26" tabindex="-1"></a><span class="do">## 2023 Q2     -2.0960     0.2219 -1.7716 -1.2377 -5.8912        2.5279</span></span>
+<span id="cb9-27"><a href="#cb9-27" tabindex="-1"></a><span class="do">## 2023 Q3     -2.3788    -0.4989 -1.8915 -1.4417 -7.5382        2.5303</span></span>
+<span id="cb9-28"><a href="#cb9-28" tabindex="-1"></a><span class="do">## 2023 Q4     -2.0227    -0.1006 -1.7160 -1.2170 -5.9322        2.5328</span></span>
+<span id="cb9-29"><a href="#cb9-29" tabindex="-1"></a><span class="do">##         total_wages government government_wages   taxes time_trend</span></span>
+<span id="cb9-30"><a href="#cb9-30" tabindex="-1"></a><span class="do">## 2021 Q1     -0.5414     1.2758          -0.5982  0.8997        205</span></span>
+<span id="cb9-31"><a href="#cb9-31" tabindex="-1"></a><span class="do">## 2021 Q2     -0.5587    -1.0791          -0.2234  9.1809        206</span></span>
+<span id="cb9-32"><a href="#cb9-32" tabindex="-1"></a><span class="do">## 2021 Q3     -0.7342    -0.3873           0.8500  0.3182        207</span></span>
+<span id="cb9-33"><a href="#cb9-33" tabindex="-1"></a><span class="do">## 2021 Q4     -0.8133    -0.0708          -0.9966  4.6251        208</span></span>
+<span id="cb9-34"><a href="#cb9-34" tabindex="-1"></a><span class="do">## 2022 Q1     -0.5534    -0.8533          -0.8763  3.5975        209</span></span>
+<span id="cb9-35"><a href="#cb9-35" tabindex="-1"></a><span class="do">## 2022 Q2     -0.6994    -0.3752          -1.3801 -1.3602        210</span></span>
+<span id="cb9-36"><a href="#cb9-36" tabindex="-1"></a><span class="do">## 2022 Q3     -1.0263     0.3883           0.4571 -5.3551        211</span></span>
+<span id="cb9-37"><a href="#cb9-37" tabindex="-1"></a><span class="do">## 2022 Q4     -1.3826     1.3228           0.5938 -6.2183        212</span></span>
+<span id="cb9-38"><a href="#cb9-38" tabindex="-1"></a><span class="do">## 2023 Q1     -1.4918     1.2402           0.8097 -6.4787        213</span></span>
+<span id="cb9-39"><a href="#cb9-39" tabindex="-1"></a><span class="do">## 2023 Q2     -1.3487     0.7229           0.9474 -2.6579        214</span></span>
+<span id="cb9-40"><a href="#cb9-40" tabindex="-1"></a><span class="do">## 2023 Q3     -1.3666     1.3819           1.4833 -2.8205        215</span></span>
+<span id="cb9-41"><a href="#cb9-41" tabindex="-1"></a><span class="do">## 2023 Q4     -1.2476     0.8931           1.2959 -2.1251        216</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">plot</span>(forecasts, <span class="at">variables =</span> <span class="st">&quot;gdp&quot;</span>)</span></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

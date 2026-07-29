@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Executing koma in Parallel</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Executing <code>koma</code> in
+Parallel</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(koma)</span></code></pre></div>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>This vignette demonstrates how to use the <code>future::plan</code>
+function to run <code>koma</code> package functions either sequentially
+or in parallel, depending on your operating system and other
+preferences.</p>
+<p>For more details, see the <a href="https://CRAN.R-project.org/package=future">future package
+documentation</a>.</p>
+</div>
+<div id="preliminaries" class="section level2">
+<h2>Preliminaries</h2>
+<p>Install the <code>future</code> and <code>parallelly</code>
+packages:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;future&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;parallelly&quot;</span>)</span></code></pre></div>
+<p>We will use the simulated data contained in <code>koma</code> to
+illustrate the use of <code>future::plan</code>. The setup is the
+following:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">library</span>(koma)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>equations <span class="ot">&lt;-</span> <span class="st">&quot;consumption ~ gdp + consumption.L(1),</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="st">investment ~ investment.L(1),</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="st">exports ~ world_gdp + exports.L(1),</span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="st">imports ~ domestic_demand + imports.L(1),</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="st">prices ~ exchange_rate + oil_price + prices.L(1),</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="st">interest_rate ~ prices + interest_rate_germany + prices.L(1),</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="st">gdp == 0.6*consumption + 0.6*domestic_demand + 0.5*exports - 0.4*imports,</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="st">domestic_demand == 0.6*consumption + 0.4*investment&quot;</span></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>exogenous_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;world_gdp&quot;</span>, <span class="st">&quot;interest_rate_germany&quot;</span>, <span class="st">&quot;exchange_rate&quot;</span>, <span class="st">&quot;oil_price&quot;</span>)</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>    <span class="at">estimation =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">1996</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2019</span>, <span class="dv">4</span>)),</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>    <span class="at">forecast =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">4</span>))</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>)</span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>sys_eq <span class="ot">&lt;-</span> <span class="fu">system_of_equations</span>(equations, exogenous_variables)</span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>series <span class="ot">&lt;-</span> <span class="fu">names</span>(small_open_economy)</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>series <span class="ot">&lt;-</span> series[<span class="sc">!</span>series <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;interest_rate&quot;</span>, <span class="st">&quot;interest_rate_germany&quot;</span>)]</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>ts_data <span class="ot">&lt;-</span> <span class="fu">lapply</span>(series, <span class="cf">function</span>(x) {</span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>    <span class="fu">as_ets</span>(small_open_economy[[x]],</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>        <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span></span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>    )</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>})</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a><span class="fu">names</span>(ts_data) <span class="ot">&lt;-</span> series</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a></span>
+<span id="cb3-31"><a href="#cb3-31" tabindex="-1"></a>ts_data<span class="sc">$</span>interest_rate <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(small_open_economy<span class="sc">$</span>interest_rate,</span>
+<span id="cb3-32"><a href="#cb3-32" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;rate&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb3-33"><a href="#cb3-33" tabindex="-1"></a>)</span>
+<span id="cb3-34"><a href="#cb3-34" tabindex="-1"></a>ts_data<span class="sc">$</span>interest_rate_germany <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(small_open_economy<span class="sc">$</span>interest_rate_germany,</span>
+<span id="cb3-35"><a href="#cb3-35" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;rate&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb3-36"><a href="#cb3-36" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="sequential-execution" class="section level2">
+<h2>Sequential Execution</h2>
+<p>By default, R executes code sequentially. For example:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(ts_data, sys_eq, dates)</span></code></pre></div>
+</div>
+<div id="parallel-execution-with-futureplan" class="section level2">
+<h2>Parallel Execution with <code>future::plan</code></h2>
+<p>To enable parallel execution, you can use <code>future::plan</code>.
+The type of parallel execution depends on your operating system or
+whether you are running the code on a cluster.</p>
+<div id="worker-setup" class="section level4">
+<h4>Worker Setup</h4>
+<p>You need to define the number of workers that your parallel job to
+run on. Here we use all cores except one.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Get the available workers</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>workers <span class="ot">&lt;-</span> parallelly<span class="sc">::</span><span class="fu">availableCores</span>(<span class="at">omit =</span> <span class="dv">1</span>)</span></code></pre></div>
+</div>
+<div id="windows" class="section level3">
+<h3>Windows</h3>
+<p>For Windows, you can use <strong>multisession</strong>:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>future<span class="sc">::</span><span class="fu">plan</span>(<span class="st">&quot;future::multisession&quot;</span>, <span class="at">workers =</span> workers)</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(ts_data, sys_eq, dates)</span></code></pre></div>
+</div>
+<div id="linux" class="section level3">
+<h3>Linux</h3>
+<p>On Linux, you can use <strong>multicore</strong> (fork-based, lower
+overhead):</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>future<span class="sc">::</span><span class="fu">plan</span>(<span class="st">&quot;future::multicore&quot;</span>, <span class="at">workers =</span> workers)</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(ts_data, sys_eq, dates)</span></code></pre></div>
+</div>
+<div id="macos" class="section level3">
+<h3>macOS</h3>
+<p>On macOS, <strong>do not use <code>multicore</code></strong>. Apple’s
+Accelerate framework (the BLAS/LAPACK backend used by
+<code>eigen()</code>) relies on Grand Central Dispatch internally, which
+is not fork-safe. Forked workers will segfault with “invalid
+permissions” inside <code>eigen()</code>.</p>
+<p>Use <strong>multisession</strong> instead — it spawns fresh R
+processes rather than forking:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>future<span class="sc">::</span><span class="fu">plan</span>(<span class="st">&quot;future::multisession&quot;</span>, <span class="at">workers =</span> workers)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(ts_data, sys_eq, dates)</span></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

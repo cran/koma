@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Estimating Small Macro Model for Switzerland</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Estimating Small Macro Model for
+Switzerland</h1>
+
+
+
+<div id="equations-of-the-small-macro-model" class="section level1">
+<h1>Equations of the Small Macro Model</h1>
+<p><strong>Stochastic equations</strong></p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{Consumption}\quad C_t &amp;= \beta_1 + \beta_{1,2} C_{t-1} +
+\gamma_{1,7} Y_t + \varepsilon_{1t},\\
+\text{Investment}\quad I_t &amp;= \beta_2 + \beta_{2,3} I_{t-1} +
+\varepsilon_{2t},\\
+\text{Exports}\quad X_t &amp;= \beta_3 + \beta_{3,4} X_{t-1} +
+\beta_{3,7} WGDP_t + \varepsilon_{3t},\\
+\text{Imports}\quad M_t &amp;= \beta_4 + \gamma_{4,8} D_t + \beta_{4,5}
+I_{t-1} + \varepsilon_{4t},\\
+\text{Prices}\quad P_t &amp;= \beta_5 + \beta_{5,9} ER_t + \beta_{5,10}
+OP_t
+     + \beta_{5,6} P_{t-1} + \varepsilon_{5t},\\
+\text{Interest Rate}\quad R_t &amp;= \beta_6 + \beta_{6,6} P_{t-1} +
+\beta_{6,8} R_{GE,t}
+     + \gamma_{6,5} P_t + \varepsilon_{6t}.
+\end{aligned}
+\]</span></p>
+<p><strong>Equilibrium condition</strong></p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{Equilibrium Ouput}\quad GDP_t &amp;= 0.6*C_t + 0.6*D_t + 0.5*X_t -
+0.4*I_t
+\end{aligned}
+\]</span></p>
+<p><strong>Identities</strong></p>
+<p><span class="math display">\[
+\begin{aligned}
+\text{Domestic Demand}\quad D_t &amp;= 0.6*C_t + 0.4*I_t
+\end{aligned}
+\]</span></p>
+<p><strong>Coefficients</strong><br />
+- The <span class="math inline">\(\beta\)</span>’s and <span class="math inline">\(\gamma\)</span>’s are structural coefficients to
+be estimated.</p>
+<p><strong>Endogenous variables</strong></p>
+<ul>
+<li><span class="math inline">\(C_t\)</span>: Consumption at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(I_t\)</span>: Gross fixed capital
+formation (investment) at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(X_t\)</span>: Exports at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(M_t\)</span>: Imports at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(P_t\)</span>: Price level at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(R_t\)</span>: Short-term interest rate
+at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(D_t\)</span>: Domestic demand, defined
+by <span class="math inline">\(D_t = 0.6 * C_t + 0.4 *
+I_t\)</span>.</li>
+<li><span class="math inline">\(GDP_t\)</span>: Equilibrium output
+(demand), defined by <span class="math inline">\(GDP_t = 0.6 * C_t + 0.6
+* D_t + 0.5 * X_t - 0.4 * I_t\)</span>.</li>
+</ul>
+<p><strong>Exogenous variables</strong></p>
+<ul>
+<li><span class="math inline">\(WGDP_t\)</span>: World GDP at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(ER_t\)</span>: Exchange rate at time
+<span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(OP_t\)</span>: Oil price at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(R_{GE,t}\)</span>: German interest rate
+at time <span class="math inline">\(t\)</span>.</li>
+</ul>
+<p><strong>Other variables</strong></p>
+<ul>
+<li><span class="math inline">\(G_t\)</span>: Government spending at
+time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(T_t\)</span>: Taxes at time <span class="math inline">\(t\)</span>.</li>
+<li><span class="math inline">\(\varepsilon_{it}\)</span>: Stochastic
+error term for equation <span class="math inline">\(i\)</span> at time
+<span class="math inline">\(t\)</span>.</li>
+</ul>
+</div>
+<div id="defining-the-sem-in-r" class="section level1">
+<h1>Defining the SEM in R</h1>
+<p>To estimate and forecast this model, we need to specify the
+equations, the exogenous variables, and the date ranges for estimation
+and forecasting.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>equations <span class="ot">&lt;-</span> <span class="st">&quot;consumption ~ gdp + consumption.L(1),</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="st">investment ~ investment.L(1),</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="st">exports ~ world_gdp + exports.L(1),</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="st">imports ~ domestic_demand + imports.L(1),</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="st">prices ~ exchange_rate + oil_price + prices.L(1),</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="st">interest_rate ~ prices + interest_rate_germany + prices.L(1),</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="st">gdp == 0.6*consumption + 0.6*domestic_demand + 0.5*exports - 0.4*imports,</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="st">domestic_demand == 0.6*consumption + 0.4*investment&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>exogenous_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;world_gdp&quot;</span>, <span class="st">&quot;interest_rate_germany&quot;</span>, <span class="st">&quot;exchange_rate&quot;</span>, <span class="st">&quot;oil_price&quot;</span>)</span></code></pre></div>
+<p>The <code>equations</code> string contains the model equations, while
+<code>exogenous_variables</code> lists the exogenous variables. The
+<code>.L(1)</code> notation indicates a lag of one period. For further
+details on the syntax, please refer to the <a href="koma-equations.html">equation syntax documentation</a>.</p>
+</div>
+<div id="creating-the-sem" class="section level1">
+<h1>Creating the SEM</h1>
+<p>The <code>system_of_equations</code> function is used to create a
+system of equations object, which can then be used for estimation and
+forecasting.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(koma)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>sys_eq <span class="ot">&lt;-</span> <span class="fu">system_of_equations</span>(</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">equations =</span> equations,</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="at">exogenous_variables =</span> exogenous_variables</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">print</span>(sys_eq)</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="do">## ── System of Equations ─────────────────────────────────────────────────────────</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="do">##     consumption ~  constant + gdp + consumption.L(1)</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a><span class="do">##      investment ~  constant + investment.L(1)</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="do">##         exports ~  constant + world_gdp + exports.L(1)</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="do">##         imports ~  constant + domestic_demand + imports.L(1)</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="do">##          prices ~  constant + exchange_rate + oil_price + prices.L(1)</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="do">##   interest_rate ~  constant + prices + interest_rate_germany + prices.L(1)</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="do">##             gdp == 0.6 * consumption + 0.6 * domestic_demand + 0.5 * exports-0.4 * imports</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a><span class="do">## domestic_demand == 0.6 * consumption + 0.4 * investment</span></span></code></pre></div>
+</div>
+<div id="defing-the-estimation-and-forecast-dates" class="section level1">
+<h1>Defing the Estimation and Forecast Dates</h1>
+<p>Now, we need to specify the dates for estimation and forecasting.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>dates <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">estimation =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">1996</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2019</span>, <span class="dv">4</span>)),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">forecast =</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">1</span>), <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2023</span>, <span class="dv">4</span>))</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="preparing-the-data" class="section level1">
+<h1>Preparing the Data</h1>
+<p>We will use the <code>small_open_economy</code> dataset, which
+contains the required variables for the model. This dataset is a list of
+standard time series (<code>ts</code>) objects, where each object
+corresponds to a variable in the model. You can explore the dataset by
+using the <code>?small_open_economy</code> command to view its
+documentation and structure.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>?small_open_economy</span></code></pre></div>
+<p>To prepare the dataset for use with the <code>koma</code> package, we
+need to convert the <code>ts</code> objects to the <code>ets</code>
+format using the <code>as_ets</code> function.</p>
+<p>The model is estimated in growth rates. The
+<code>small_open_economy</code> dataset is in levels. We use the
+<code>ets</code> to tell the model that the data is in levels and how to
+convert it to growth rates. <code>ets</code> is generalized to accept
+any additional attributes. Below we use this feature to save the series’
+value_type (real or nominal).</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a>series <span class="ot">&lt;-</span> <span class="fu">names</span>(small_open_economy)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>series <span class="ot">&lt;-</span> series[<span class="sc">!</span>series <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">&quot;interest_rate&quot;</span>, <span class="st">&quot;interest_rate_germany&quot;</span>)]</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>ts_data <span class="ot">&lt;-</span> <span class="fu">lapply</span>(series, <span class="cf">function</span>(x) {</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>  <span class="fu">as_ets</span>(small_open_economy[[x]],</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>  )</span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>})</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="fu">names</span>(ts_data) <span class="ot">&lt;-</span> series</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>ts_data<span class="sc">$</span>interest_rate <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(small_open_economy<span class="sc">$</span>interest_rate,</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>  <span class="at">series_type =</span> <span class="st">&quot;rate&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>)</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>ts_data<span class="sc">$</span>interest_rate_germany <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(small_open_economy<span class="sc">$</span>interest_rate_germany,</span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>  <span class="at">series_type =</span> <span class="st">&quot;rate&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>)</span></code></pre></div>
+<p>With the data prepared, we can now proceed to estimate the model.
+Before forecasting, however, we need to truncate the endogenous
+variables to ensure they only include data up to the forecast start
+date.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>ts_data[sys_eq<span class="sc">$</span>endogenous_variables] <span class="ot">&lt;-</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="fu">lapply</span>(sys_eq<span class="sc">$</span>endogenous_variables, <span class="cf">function</span>(x) {</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    stats<span class="sc">::</span><span class="fu">window</span>(ts_data[[x]], <span class="at">end =</span> <span class="fu">c</span>(<span class="dv">2019</span>, <span class="dv">4</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  })</span></code></pre></div>
+</div>
+<div id="estimating-the-model" class="section level1">
+<h1>Estimating the Model</h1>
+<p>The names of the list elements should match the variable names used
+in the equations. Now, we can estimate the model using the
+<code>estimate</code> function.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>estimates <span class="ot">&lt;-</span> <span class="fu">estimate</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>  sys_eq,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>  <span class="at">ts_data =</span> ts_data,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>  <span class="at">dates =</span> dates</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="do">## ── Gibbs Sampler Settings ──────────────────────────────────────────────────────</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="do">## ── System Wide Settings ──</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="do">##   • Number of draws (`ndraws`): 2000</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="do">##   • Burn-in ratio (`burnin_ratio`): 0.5</span></span>
+<span id="cb7-11"><a href="#cb7-11" tabindex="-1"></a><span class="do">##   • Burn-in (`burnin`): 1000</span></span>
+<span id="cb7-12"><a href="#cb7-12" tabindex="-1"></a><span class="do">##   • Store frequency (`nstore`): 1</span></span>
+<span id="cb7-13"><a href="#cb7-13" tabindex="-1"></a><span class="do">##   • Number of saved draws (`nsave`): 1000</span></span>
+<span id="cb7-14"><a href="#cb7-14" tabindex="-1"></a><span class="do">##   • Tau (`tau`): 1.1</span></span>
+<span id="cb7-15"><a href="#cb7-15" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-16"><a href="#cb7-16" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-17"><a href="#cb7-17" tabindex="-1"></a><span class="do">## ── Estimation ──────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-18"><a href="#cb7-18" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-19"><a href="#cb7-19" tabindex="-1"></a><span class="do">## ── ⚠ MCMC Acceptance Probability Warnings ──────────────────────────────────────</span></span>
+<span id="cb7-20"><a href="#cb7-20" tabindex="-1"></a><span class="do">## • consumption: 61.1%</span></span>
+<span id="cb7-21"><a href="#cb7-21" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-22"><a href="#cb7-22" tabindex="-1"></a><span class="do">## ℹ Some acceptance probabilities are outside the recommended range (20%-60%).</span></span>
+<span id="cb7-23"><a href="#cb7-23" tabindex="-1"></a><span class="do">## Consider revising the equations, tuning each equation&#39;s tau, or adjusting your priors.</span></span>
+<span id="cb7-24"><a href="#cb7-24" tabindex="-1"></a><span class="fu">print</span>(estimates)</span>
+<span id="cb7-25"><a href="#cb7-25" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb7-26"><a href="#cb7-26" tabindex="-1"></a><span class="do">## ── Estimates ───────────────────────────────────────────────────────────────────</span></span>
+<span id="cb7-27"><a href="#cb7-27" tabindex="-1"></a><span class="do">##     consumption ~  0.36 - 0.02 * gdp  +  0.11 * consumption.L(1)</span></span>
+<span id="cb7-28"><a href="#cb7-28" tabindex="-1"></a><span class="do">##      investment ~  0.45  +  0.22 * investment.L(1)</span></span>
+<span id="cb7-29"><a href="#cb7-29" tabindex="-1"></a><span class="do">##         exports ~  - 0.29  +  3.18 * world_gdp - 0.29 * exports.L(1)</span></span>
+<span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a><span class="do">##         imports ~  - 0.04  +  2.59 * domestic_demand - 0.1 * imports.L(1)</span></span>
+<span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a><span class="do">##          prices ~  0.03  +  0.03 * exchange_rate  +  0.01 * oil_price  +  0.56 * prices.L(1)</span></span>
+<span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a><span class="do">##   interest_rate ~  - 0.51  +  0.52 * prices  +  0.57 * interest_rate_germany - 0.22 * prices.L(1)</span></span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="do">##             gdp == 0.6 * consumption  +  0.6 * domestic_demand  +  0.5 * exports - 0.4 * imports</span></span>
+<span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a><span class="do">## domestic_demand == 0.6 * consumption  +  0.4 * investment</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">summary</span>(estimates)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="do">## ===============================================================================================================</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="do">##                        consumption    investment    exports         imports        prices        interest_rate </span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="do">## ---------------------------------------------------------------------------------------------------------------</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="do">## constant                 0.36          0.45          -0.29           -0.04          0.03          -0.51        </span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="do">##                        [ 0.27; 0.45]  [0.19; 0.72]  [-0.88;  0.29]  [-0.52; 0.48]  [0.00; 0.06]  [-0.63; -0.39]</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="do">## consumption.L(1)         0.11                                                                                  </span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="do">##                        [-0.08; 0.30]                                                                           </span></span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="do">## gdp                     -0.02                                                                                  </span></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="do">##                        [-0.11; 0.07]                                                                           </span></span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="do">## investment.L(1)                        0.22                                                                    </span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="do">##                                       [0.03; 0.40]                                                             </span></span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="do">## exports.L(1)                                         -0.29                                                     </span></span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="do">##                                                     [-0.46; -0.13]                                             </span></span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="do">## world_gdp                                             3.18                                                     </span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="do">##                                                     [ 2.33;  4.05]                                             </span></span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="do">## imports.L(1)                                                         -0.10                                     </span></span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="do">##                                                                     [-0.27; 0.06]                              </span></span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="do">## domestic_demand                                                       2.59                                     </span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="do">##                                                                     [ 1.49; 3.51]                              </span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="do">## prices.L(1)                                                                         0.56          -0.22        </span></span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="do">##                                                                                    [0.46; 0.66]  [-0.65;  0.20]</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="do">## exchange_rate                                                                       0.03                       </span></span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="do">##                                                                                    [0.02; 0.05]                </span></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="do">## oil_price                                                                           0.01                       </span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="do">##                                                                                    [0.01; 0.01]                </span></span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="do">## interest_rate_germany                                                                              0.57        </span></span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a><span class="do">##                                                                                                  [ 0.52;  0.62]</span></span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a><span class="do">## prices                                                                                             0.52        </span></span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a><span class="do">##                                                                                                  [ 0.07;  1.03]</span></span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a><span class="do">## ===============================================================================================================</span></span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a><span class="do">## Posterior mean (90% credible interval: [5.0%, 95.0%])</span></span>
+<span id="cb8-34"><a href="#cb8-34" tabindex="-1"></a><span class="do">## Estimation period: 1996 Q1 - 2019 Q4</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">summary</span>(estimates, <span class="at">variables =</span> <span class="st">&quot;investment&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="do">## =============================</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="do">##                  investment  </span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="do">## -----------------------------</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="do">## constant          0.45       </span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="do">##                  [0.19; 0.72]</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="do">## investment.L(1)   0.22       </span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="do">##                  [0.03; 0.40]</span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="do">## =============================</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="do">## Posterior mean (90% credible interval: [5.0%, 95.0%])</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="do">## Estimation period: 1996 Q1 - 2019 Q4</span></span></code></pre></div>
+<p>To see how to run the estimation in parallel, refer to the <a href="koma-parallel.html">parallel estimation vignette</a>.</p>
+</div>
+<div id="diagnostics" class="section level1">
+<h1>Diagnostics</h1>
+<p>You can visualize MCMC diagnostics for coefficient draws using
+<code>trace_plot()</code>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">requireNamespace</span>(<span class="st">&quot;ggplot2&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a>  <span class="fu">trace_plot</span>(estimates, <span class="at">variables =</span> <span class="fu">c</span>(<span class="st">&quot;consumption&quot;</span>, <span class="st">&quot;investment&quot;</span>))</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>}</span></code></pre></div>
+<p>You can also inspect running means (cumulative averages) with
+<code>running_mean_plot()</code>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">requireNamespace</span>(<span class="st">&quot;ggplot2&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>  <span class="fu">running_mean_plot</span>(estimates, <span class="at">variables =</span> <span class="fu">c</span>(<span class="st">&quot;consumption&quot;</span>, <span class="st">&quot;investment&quot;</span>))</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>}</span></code></pre></div>
+<p>You can inspect autocorrelation diagnostics with
+<code>acf_plot()</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">requireNamespace</span>(<span class="st">&quot;ggplot2&quot;</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>  <span class="fu">acf_plot</span>(estimates, <span class="at">variables =</span> <span class="fu">c</span>(<span class="st">&quot;consumption&quot;</span>, <span class="st">&quot;investment&quot;</span>))</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>}</span></code></pre></div>
+</div>
+<div id="forecasting" class="section level1">
+<h1>Forecasting</h1>
+<p>To forecast the model, we can use the <code>forecast</code> function.
+This function will generate forecasts for the specified date range.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>forecasts <span class="ot">&lt;-</span> <span class="fu">forecast</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  estimates,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">dates =</span> dates</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>)</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="do">## ── Forecast ────────────────────────────────────────────────────────────────────</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a><span class="do">## Conditional fill detected after &quot;2019 Q4&quot;.</span></span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a><span class="do">## Missing observations for: &quot;consumption&quot;, &quot;investment&quot;, &quot;exports&quot;, &quot;imports&quot;,</span></span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a><span class="do">## &quot;prices&quot;, &quot;interest_rate&quot;, &quot;gdp&quot;, and &quot;domestic_demand&quot;</span></span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a><span class="do">## Missing values will be conditionally filled up to &quot;2022 Q4&quot; before forecasting.</span></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="do">## ✔ Forecasting completed.</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="fu">print</span>(forecasts)</span>
+<span id="cb13-14"><a href="#cb13-14" tabindex="-1"></a><span class="do">## &lt;koma_ts&gt;</span></span>
+<span id="cb13-15"><a href="#cb13-15" tabindex="-1"></a><span class="do">## attributes:</span></span>
+<span id="cb13-16"><a href="#cb13-16" tabindex="-1"></a><span class="do">##   series_type: list[12]</span></span>
+<span id="cb13-17"><a href="#cb13-17" tabindex="-1"></a><span class="do">##   method: list[12]</span></span>
+<span id="cb13-18"><a href="#cb13-18" tabindex="-1"></a><span class="do">##   anker: list[12]</span></span>
+<span id="cb13-19"><a href="#cb13-19" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb13-20"><a href="#cb13-20" tabindex="-1"></a><span class="do">## series:</span></span>
+<span id="cb13-21"><a href="#cb13-21" tabindex="-1"></a><span class="do">##         consumption investment exports imports  prices interest_rate    gdp</span></span>
+<span id="cb13-22"><a href="#cb13-22" tabindex="-1"></a><span class="do">## 2023 Q1      0.3785     0.4633  1.2160  0.8704 -0.0603        0.8378 0.7344</span></span>
+<span id="cb13-23"><a href="#cb13-23" tabindex="-1"></a><span class="do">## 2023 Q2      0.3993     0.5732  0.6695  1.1069 -0.0709        1.2625 0.4129</span></span>
+<span id="cb13-24"><a href="#cb13-24" tabindex="-1"></a><span class="do">## 2023 Q3      0.3753     0.6284  0.8870  1.0234  0.0126        1.5708 0.5453</span></span>
+<span id="cb13-25"><a href="#cb13-25" tabindex="-1"></a><span class="do">## 2023 Q4      0.3873     0.5874  0.3354  1.0933 -0.0132        1.6856 0.2432</span></span>
+<span id="cb13-26"><a href="#cb13-26" tabindex="-1"></a><span class="do">##         domestic_demand world_gdp interest_rate_germany exchange_rate oil_price</span></span>
+<span id="cb13-27"><a href="#cb13-27" tabindex="-1"></a><span class="do">## 2023 Q1          0.4124    0.4827                2.3887        0.9217   -8.7520</span></span>
+<span id="cb13-28"><a href="#cb13-28" tabindex="-1"></a><span class="do">## 2023 Q2          0.4688    0.4083                3.1460       -1.3863   -3.3787</span></span>
+<span id="cb13-29"><a href="#cb13-29" tabindex="-1"></a><span class="do">## 2023 Q3          0.4766    0.4259                3.6393       -1.7869    9.9001</span></span>
+<span id="cb13-30"><a href="#cb13-30" tabindex="-1"></a><span class="do">## 2023 Q4          0.4673    0.2906                3.8850       -0.7502   -3.3373</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">rate</span>(forecasts<span class="sc">$</span>mean<span class="sc">$</span>gdp)</span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="do">## &lt;koma_ts&gt;</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="do">## attributes:</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="do">##   series_type:  chr &quot;rate&quot;</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="do">##   method:  chr &quot;diff_log&quot;</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="do">##   anker:  num [1:2] 192523 2023</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="do">## series:</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="do">##           Qtr1      Qtr2      Qtr3      Qtr4</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="do">## 2023 0.7343906 0.4128768 0.5453014 0.2431651</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="fu">level</span>(forecasts<span class="sc">$</span>mean<span class="sc">$</span>gdp)</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="do">## &lt;koma_ts&gt;</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="do">## attributes:</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="do">##   series_type:  chr &quot;level&quot;</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="do">##   method:  chr &quot;diff_log&quot;</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a><span class="do">## series:</span></span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a><span class="do">##          Qtr1     Qtr2     Qtr3     Qtr4</span></span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a><span class="do">## 2022                            192522.6</span></span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a><span class="do">## 2023 193941.7 194744.1 195808.9 196285.7</span></span></code></pre></div>
+<div id="conditional-forecasting" class="section level2">
+<h2>Conditional Forecasting</h2>
+<p>Conditional forecasting allows you to impose restrictions on certain
+variables during the forecast period to fix their values. This is useful
+for scenario analysis and policy evaluation, as the forecasts will
+reflect these user-defined conditions.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>fig <span class="ot">&lt;-</span> <span class="fu">plot</span>(forecasts, <span class="at">variables =</span> <span class="st">&quot;prices&quot;</span>)</span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>fig</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>restrictions <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">prices =</span> <span class="fu">list</span>(<span class="at">value =</span> <span class="fl">0.5</span>, <span class="at">horizon =</span> <span class="dv">1</span>))</span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>forecasts <span class="ot">&lt;-</span> <span class="fu">forecast</span>(estimates,</span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>  <span class="at">dates =</span> dates,</span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a>  <span class="at">restrictions =</span> restrictions</span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a>)</span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="fu">plot</span>(forecasts, <span class="at">fig =</span> fig, <span class="at">variables =</span> <span class="st">&quot;prices&quot;</span>)</span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a>forecasts<span class="sc">$</span>mean<span class="sc">$</span>prices</span></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

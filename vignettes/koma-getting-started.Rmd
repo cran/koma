@@ -1,0 +1,159 @@
+---
+title: "Estimating and Forecasting with the koma Package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{koma}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{R, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>"
+)
+```
+
+```{R setup}
+library(koma)
+```
+
+# Overview
+
+This vignette walks through a minimal end-to-end workflow:
+define a small system, prepare data, estimate, and forecast.
+For full syntax details, see the [equation reference](koma-equations.html),
+and for time series handling see the [ets vignette](koma-extended-timeseries.html).
+
+# Define a small system
+
+We start with four stochastic equations and two identities that mirror a small
+open economy. The interest rate, world GDP, and the exchange rate are treated
+as exogenous in this example.
+To keep the setup minimal, the GDP identity below uses fixed illustrative
+weights. For an example with time-varying weights computed from nominal series,
+see the [Klein vignette](koma-klein.html).
+
+```{R}
+equations <- "consumption ~ gdp + consumption.L(1) + interest_rate,
+investment ~ gdp + investment.L(1) + interest_rate,
+exports ~ world_gdp + exchange_rate + exports.L(1),
+imports ~ gdp + exchange_rate + imports.L(1),
+gdp == 0.55*consumption + 0.20*investment + 0.30*exports - 0.05*imports"
+
+exogenous_variables <- c("interest_rate", "world_gdp", "exchange_rate")
+```
+
+# Build the system
+
+```{R}
+sys_eq <- system_of_equations(
+    equations = equations,
+    exogenous_variables = exogenous_variables
+)
+
+print(sys_eq)
+```
+
+# Pick estimation and forecast ranges
+
+We use the last year of the dataset as a short out-of-sample forecast period.
+For this introductory example, the identity already contains fixed numeric
+weights, so only estimation and forecast ranges are needed.
+
+```{R}
+dates <- list(
+    estimation = list(start = c(1996, 1), end = c(2019, 4)),
+    forecast = list(start = c(2023, 1), end = c(2023, 4))
+)
+```
+
+# Prepare the data
+
+We use the `small_open_economy` dataset, which is a list of `ts` objects.
+We'll keep only the variables that appear in the system.
+
+```{R}
+data("small_open_economy")
+series <- unique(c(sys_eq$endogenous_variables, sys_eq$exogenous_variables))
+ts_data <- small_open_economy[series]
+```
+
+If you pass `ts` objects directly, `estimate()` will prompt you for default
+conversion settings and optional exceptions. For example, we override the
+defaults to use level/diff_log and keep `interest_rate` as a rate series:
+
+```{R, eval=FALSE}
+estimates <- estimate(ts_data, sys_eq, dates)
+#> Some of the time series in `ts_data` are not `ets`.
+#> They will be automatically converted with `as_ets` using the defaults:
+#> Default settings
+#> series_type = level
+#> method = percentage
+#> Are these correct? (y/n): n
+#> Enter series_type: level
+#> Enter method: diff_log
+#> Specify exception to default settings? (y/n): y
+#> Enter series name: interest_rate
+#> Enter series_type for interest_rate (default level): rate
+#> Enter method for interest_rate (default diff_log): none
+#> Specify exception to default settings? (y/n): n
+```
+
+In this vignette we convert explicitly to keep the example non-interactive:
+
+```{R}
+ts_data <- lapply(ts_data, function(x) {
+    as_ets(x, series_type = "level", method = "diff_log")
+})
+ts_data$interest_rate <- as_ets(
+    ts_data$interest_rate,
+    series_type = "rate",
+    method = "none"
+)
+```
+
+# Estimate the model
+
+```{R}
+estimates <- estimate(
+    ts_data,
+    sys_eq,
+    dates
+)
+
+print(estimates)
+summary(estimates)
+```
+
+# Forecast and inspect
+
+Before forecasting, truncate endogenous series so they end in the quarter before the forecast start date.
+
+```{R}
+estimates$ts_data[sys_eq$endogenous_variables] <-
+    lapply(sys_eq$endogenous_variables, function(x) {
+        stats::window(estimates$ts_data[[x]], end = c(2022, 4))
+    })
+```
+
+```{R}
+forecasts <- forecast(estimates, dates)
+print(forecasts)
+
+rate(forecasts$mean$gdp)
+level(forecasts$mean$gdp)
+```
+
+You can also summarize forecast horizons with mean/median and quantiles:
+
+```{R}
+summary(forecasts)
+summary(forecasts, variables = "gdp", horizon = 2)
+```
+
+```{R, eval=FALSE}
+if (requireNamespace("plotly", quietly = TRUE)) {
+    plot(forecasts, variables = c("gdp", "consumption"))
+}
+```

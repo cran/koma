@@ -1,0 +1,224 @@
+#' Fill Ragged Edges in Time Series Data
+#'
+#' This function fills in the ragged edges in a time series data set using a
+#' system of equations model. It iteratively detects edges, estimates the
+#' model, and fills the unobserved series using a one-step ahead conditional
+#' forecast until the time series is balanced.
+#'
+#' @param fill_method Character string indicating which central tendency measure
+#' ("mean" or "median") to use when filling ragged edges.
+#' @inheritParams estimate
+#' @inheritParams system_of_equations
+#'
+#' @return A list containing the updated time series data.
+#' @keywords internal
+fill_ragged_edge <- function(ts_data, sys_eq,
+                             exogenous_variables, dates, fill_method) {
+  fill_method <- match.arg(fill_method, c("mean", "median"))
+  endogenous_variables <- sys_eq$endogenous_variables
+  total_exogenous_variables <- sys_eq$total_exogenous_variables
+
+  edge <- detect_edge(
+    ts_data[endogenous_variables],
+    dates$estimation$start,
+    dates$estimation$end
+  )
+
+  if (edge$date >= dates$estimation$end) {
+    return(ts_data)
+  }
+
+  while (edge$date < dates$estimation$end) {
+    ##### Construct Y and X matrix
+    balanced_data <- construct_balanced_data(
+      ts_data, endogenous_variables, total_exogenous_variables,
+      dates$estimation$start, dates$estimation$end,
+      state = list(warning_issued = TRUE)
+    )
+
+    date <- dates_to_str(num_to_dates(edge$date, balanced_data$freq), balanced_data$freq)
+    cli::cli_text("")
+    cli::cli_text("Ragged edge detected at {.val {date}}")
+    cli::cli_text("Missing observations for: {.val {edge$variable_names}}")
+    cli::cli_text("This will require estimation and forecasting to fill the gap.")
+    response <- readline(prompt = "Continue with ragged edge processing? (y/n):")
+    if (tolower(response) != "y") {
+      cli::cli_text("{.alert-warning Ragged edge filling aborted by user.}")
+      return(ts_data)
+    }
+
+    prompt <- paste0(
+      "Choose fill method (mean/median) [", fill_method, "]: "
+    )
+    response <- readline(prompt = prompt)
+    response <- tolower(trimws(response))
+    if (nzchar(response)) {
+      if (response %in% c("mean", "median")) {
+        fill_method <- response
+      } else {
+        cli::cli_warn(c(
+          "x" = "Invalid fill method {.val {response}}.",
+          "i" = "Using {.val {fill_method}}."
+        ))
+      }
+    }
+
+    y_matrix <- balanced_data$y_matrix
+    x_matrix <- balanced_data$x_matrix
+    edge <- balanced_data$edge
+
+    ##### Estimate model
+    estimates <- estimate_sem(sys_eq, y_matrix, x_matrix)
+
+    # One step ahead forecast to fill unobserved series at edge
+    horizon <- 1
+
+    # Set variables with observation as restricted
+    variables_to_restrict <- endogenous_variables[
+      !endogenous_variables %in% edge$variable_names
+    ]
+    restrictions <- set_restrictions(
+      ts_data, variables_to_restrict,
+      start = edge$date,
+      end = edge$date
+    )
+
+    forecast_dates <- list()
+    forecast_dates$start <- iterate_n_periods(edge$date, 1, frequency = balanced_data$freq)
+    # forecast end date needs to be different to start to get a matrix
+    # because horizon is 1 the end date will be disregarded
+    forecast_dates$end <- iterate_n_periods(edge$date, 2, frequency = balanced_data$freq)
+
+    forecast_x_matrix <- stats::window(
+      as_mets(ts_data[sys_eq$exogenous_variables]),
+      start = forecast_dates$start,
+      end = forecast_dates$end
+    )
+
+    ##### Produce forecasts
+    forecasts <- forecast_sem(
+      sys_eq, estimates, restrictions,
+      y_matrix, forecast_x_matrix, horizon, balanced_data$freq, forecast_dates,
+      approximate = TRUE, probs = NULL
+    )
+
+    # Take mean or median forecast
+    forecasts <- forecasts[[fill_method]]
+
+    ts_data <- extend_ts_with_forecast(ts_data, forecasts)
+
+    # remove lagged variables
+    ts_data <- ts_data[c(sys_eq$endogenous_variables, sys_eq$exogenous_variables)]
+    # lag values
+    ts_data <- create_lagged_variables(
+      ts_data, sys_eq$endogenous_variables,
+      exogenous_variables, sys_eq$predetermined_variables
+    )
+
+    edge <- detect_edge(
+      ts_data[endogenous_variables],
+      dates$estimation$start,
+      dates$estimation$end
+    )
+  }
+
+  cli::cli_rule()
+  cli::cli_text("") # Empty line via cli
+
+  ts_data
+}
+
+#' Conditional Fill and Forecast for Time Series Data
+#'
+#' This function fills missing observations and extends the time series data
+#' up to and including the current quarter. The function conditionally forecasts
+#' based on the estimates and realized observations.
+#'
+#' @param fill_method Character string indicating which central tendency measure
+#' ("mean" or "median") to use when filling ragged edges.
+#' @inheritParams estimate
+#' @inheritParams system_of_equations
+#'
+#' @return An extended time series list containing the filled and forecasted
+#' time series up to the current quarter.
+#' @keywords internal
+conditional_fill <- function(ts_data, sys_eq, dates,
+                             estimates, fill_method) {
+  fill_method <- match.arg(fill_method, c("mean", "median"))
+  endogenous_variables <- sys_eq$endogenous_variables
+
+  edge <- detect_edge(
+    ts_data[endogenous_variables],
+    dates$estimation$start,
+    dates$current
+  )
+
+  ##### Construct Y and X matrix
+  balanced_data <- construct_balanced_data(
+    ts_data, endogenous_variables,
+    sys_eq$total_exogenous_variables,
+    dates$estimation$start, dates$current,
+    state = list(warning_issued = TRUE)
+  )
+
+  y_matrix <- balanced_data$y_matrix
+  edge <- balanced_data$edge
+
+  # Forecast horizon
+  frequency <- balanced_data$freq
+  horizon <- length(seq(
+    iterate_n_periods(edge$date, 1, frequency),
+    dates$current,
+    by = 1 / frequency
+  ))
+
+  # Set variables with observation as restricted
+  variables_to_restrict <- endogenous_variables[
+    !endogenous_variables %in% edge$variable_names
+  ]
+  restrictions <- set_restrictions(
+    ts_data, variables_to_restrict,
+    start = iterate_n_periods(edge$date, 1, frequency = frequency),
+    end = dates$current
+  )
+
+  forecast_dates <- list()
+  forecast_dates$start <- iterate_n_periods(edge$date, 1, frequency = frequency)
+  # forecast end date needs to be different to start to get a matrix
+  # because horizon is 1 the end date will be disregarded
+  forecast_dates$end <- iterate_n_periods(edge$date, horizon, frequency = frequency)
+
+  forecast_x_matrix <- stats::window(
+    as_mets(ts_data[sys_eq$exogenous_variables]),
+    start = forecast_dates$start,
+    end = forecast_dates$end
+  )
+
+  ##### Produce forecasts
+  forecasts <- forecast_sem(
+    sys_eq, estimates, restrictions,
+    y_matrix, forecast_x_matrix, horizon, balanced_data$freq, forecast_dates,
+    approximate = TRUE, probs = NULL
+  )
+
+  # Take mean or median forecast
+  forecasts <- forecasts[[fill_method]]
+
+  # remove lagged variables
+  ts_data <- ts_data[c(sys_eq$endogenous_variables, sys_eq$exogenous_variables)]
+
+  ts_data <- extend_ts_with_forecast(
+    ts_data,
+    forecasts
+  )
+
+  # lag values
+  ts_data <- create_lagged_variables(
+    ts_data,
+    sys_eq$endogenous_variables,
+    sys_eq$exogenous_variables,
+    sys_eq$predetermined_variables
+  )
+
+  ts_data
+}
