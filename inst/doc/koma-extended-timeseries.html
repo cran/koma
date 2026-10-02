@@ -582,6 +582,29 @@ in <code>koma</code> without losing metadata.</p>
 <span id="cb8-49"><a href="#cb8-49" tabindex="-1"></a><span class="co">#&gt; 2020    1    1    1    1</span></span>
 <span id="cb8-50"><a href="#cb8-50" tabindex="-1"></a><span class="co">#&gt; 2021    1    1</span></span></code></pre></div>
 </div>
+<div id="using-plain-ts-with-estimate" class="section level2">
+<h2>Using plain ts with estimate()</h2>
+<p><code>estimate()</code> requires <code>koma_ts</code>, but if you
+pass a plain <code>ts</code> it will convert it automatically, assuming
+the series is already in rates (the form the model estimates on) and
+applying no transformation (<code>series_type = &quot;rate&quot;</code>,
+<code>method = &quot;none&quot;</code>). A warning lists any series converted this
+way. If a series is actually in levels, convert it explicitly first, as
+shown above, so the right transformation is applied:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>level_series <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">ts</span>(<span class="fu">c</span>(<span class="dv">100</span>, <span class="dv">101</span>, <span class="dv">99</span>, <span class="dv">103</span>, <span class="dv">105</span>, <span class="dv">104</span>, <span class="dv">108</span>, <span class="dv">110</span>),</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>  <span class="at">start =</span> <span class="fu">c</span>(<span class="dv">2020</span>, <span class="dv">1</span>), <span class="at">frequency =</span> <span class="dv">4</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>)</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="fu">as_ets</span>(level_series, <span class="at">series_type =</span> <span class="st">&quot;level&quot;</span>, <span class="at">method =</span> <span class="st">&quot;diff_log&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="co">#&gt; &lt;koma_ts&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a><span class="co">#&gt; attributes:</span></span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co">#&gt;   series_type:  chr &quot;level&quot;</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a><span class="co">#&gt;   method:  chr &quot;diff_log&quot;</span></span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co">#&gt; series:</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a><span class="co">#&gt;      Qtr1 Qtr2 Qtr3 Qtr4</span></span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a><span class="co">#&gt; 2020  100  101   99  103</span></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co">#&gt; 2021  105  104  108  110</span></span></code></pre></div>
+</div>
 
 
 

@@ -71,7 +71,7 @@ test_that("estimate correctly estimates model", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c(
@@ -138,6 +138,62 @@ test_that("estimate correctly estimates model", {
   }
 })
 
+test_that("estimate with a lagged identity series", {
+  skip_on_cran()
+  dates <- list(estimation = list(
+    start = c(1977, 1),
+    end = c(2019, 4)
+  ))
+
+  # gdp is an identity (defined via `==`), but consumption references it as
+  # a lag, i.e. gdp.L(1) instead of the contemporaneous gdp.
+  # Note: manufacturing and service (the identity's components) deliberately
+  # don't use their own lag elsewhere in the system - since gdp is an exact
+  # (noise-free) linear combination of them, doing so would make gdp.L(1)
+  # perfectly collinear with manufacturing.L(1)/service.L(1) in x_matrix.
+  equations <-
+    "consumption ~ gdp.L(1) + consumption.L(1),
+    investment ~ investment.L(1) + real_interest_rate,
+    current_account ~ current_account.L(1) + world_gdp,
+    manufacturing ~ world_gdp,
+    service ~ population,
+    gdp == 0.5*manufacturing + 0.5*service"
+
+  exogenous_variables <- c("real_interest_rate", "world_gdp", "population")
+
+  sys_eq <- system_of_equations(equations, exogenous_variables)
+
+  # gdp remains an identity, and its lag is picked up as predetermined
+  expect_true("gdp" %in% names(sys_eq$identities))
+  expect_true("gdp.L(1)" %in% sys_eq$predetermined_variables)
+
+  ts_data <- simulated_data$ts_data
+
+  out <- withr::with_seed(
+    7,
+    estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
+  )
+
+  expect_true(inherits(out, "koma_estimate"))
+  expect_identical(
+    names(out$estimates),
+    c(
+      "consumption", "investment", "current_account", "manufacturing",
+      "service"
+    )
+  )
+  # constant + gdp.L(1) + consumption.L(1) = 3 coefficients
+  expect_equal(length(out$estimates$consumption[["beta_jw"]][[1]]), 3)
+
+  # the identity's series was correctly lagged: x_matrix's gdp.L(1) at time t
+  # matches y_matrix's gdp at time t - 1
+  n <- nrow(out$y_matrix)
+  expect_equal(
+    unname(out$x_matrix[2:n, "gdp.L(1)"]),
+    unname(out$y_matrix[1:(n - 1), "gdp"])
+  )
+})
+
 test_that("estimate correctly returns when parallel", {
   skip_on_cran()
   skip_if_not_installed(c("parallelly", "future"))
@@ -176,7 +232,7 @@ test_that("estimate correctly returns when parallel", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c(
@@ -623,7 +679,7 @@ test_that("estimate correctly estimates model with informative priors", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c(
@@ -669,7 +725,7 @@ test_that("estimate with informative priors, that are too far from true value", 
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c(
@@ -704,7 +760,7 @@ test_that("estimate with no gamma parameters", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c("manufacturing", "service")
@@ -735,7 +791,7 @@ test_that("estimate with only one exogenous variable", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c("manufacturing", "service")
@@ -757,7 +813,7 @@ test_that("estimate with only one exogenous variable", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(
     names(out$estimates),
     c("manufacturing", "service")
@@ -786,7 +842,7 @@ test_that("estimate with only one equation", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(names(out$estimates), c("manufacturing"))
   expect_true(inherits(out, "koma_estimate"))
   expect_length(out$estimates$manufacturing[["beta_jw"]], 100)
@@ -801,7 +857,7 @@ test_that("estimate with only one equation", {
     estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
 
-  expect_length(out, 7)
+  expect_length(out, 8)
   expect_identical(names(out$estimates), c("manufacturing"))
   expect_true(inherits(out, "koma_estimate"))
   expect_length(out$estimates$manufacturing[["beta_jw"]], 100)
@@ -1050,29 +1106,20 @@ test_that("estimate, ts provided instead of ets", {
 
   ts_data <- lapply(simulated_data$ts_data, as.ts)
 
-  # mock response to YES with y
-  expect_error(
-    testthat::with_mocked_bindings(
-      {
-        withr::with_seed(
-          7,
-          estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
-        )
-      },
-      readline = local({
-        responses <- c("y", "n")
-        i <- 0
-        function(...) {
-          i <<- i + 1
-          responses[i]
-        }
-      }),
-      .package = "base"
-    ), NA
+  expect_warning(
+    result <- withr::with_seed(
+      7,
+      estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
+    ),
+    "rate/level transformation is applied"
   )
+
+  expect_s3_class(result, "koma_estimate")
+  expect_setequal(result$plain_ts_names, names(ts_data))
+  expect_true(all(sapply(result$ts_data, inherits, "koma_ts")))
 })
 
-test_that("estimate, ts provided instead of ets", {
+test_that("estimate leaves koma_ts input untouched and reports no plain ts names", {
   skip_on_cran()
   dates <- list(estimation = list(
     start = c(1977, 1),
@@ -1091,56 +1138,37 @@ test_that("estimate, ts provided instead of ets", {
 
   sys_eq <- system_of_equations(equations, exogenous_variables)
 
-  ts_data <- lapply(simulated_data$ts_data, as.ts)
+  ts_data <- simulated_data$ts_data
 
-  # mock response NO with n,
-  # set series type to level and method to percentage
-  expect_error(
-    testthat::with_mocked_bindings(
-      {
-        withr::with_seed(
-          7,
-          estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
-        )
-      },
-      readline = local({
-        responses <- c("n", "level", "percentage", "n")
-        i <- 0
-        function(...) {
-          i <<- i + 1
-          responses[i]
-        }
-      }),
-      .package = "base"
-    ), NA
+  result <- withr::with_seed(
+    7,
+    estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
   )
+
+  expect_length(result$plain_ts_names, 0)
 })
 
-test_that("convert_ts_data_to_ets applies defaults and exceptions", {
+test_that("convert_ts_data_to_ets tags plain ts as rate/none and warns", {
   ts_data <- lapply(simulated_data$ts_data[c("consumption", "manufacturing", "service")], as.ts)
 
-  result <- testthat::with_mocked_bindings(
-    {
-      koma:::convert_ts_data_to_ets(ts_data)
-    },
-    readline = local({
-      responses <- c("n", "level", "diff_log", "y", "manufacturing", "rate", "none", "y", "service", "level", "percentage", "n")
-      i <- 0
-      function(...) {
-        i <<- i + 1
-        responses[i]
-      }
-    }),
-    .package = "base"
+  expect_warning(
+    result <- koma:::convert_ts_data_to_ets(ts_data),
+    "rate/level transformation is applied"
   )
 
   expect_true(all(sapply(result, inherits, "koma_ts")))
-  expect_identical(attr(result$consumption, "series_type"), "level")
-  expect_identical(attr(result$consumption, "method"), "diff_log")
-  expect_identical(attr(result$manufacturing, "series_type"), "rate")
-  expect_identical(attr(result$manufacturing, "method"), "none")
-  expect_identical(attr(result$service, "series_type"), "level")
-  expect_identical(attr(result$service, "method"), "percentage")
+  for (series in result) {
+    expect_identical(attr(series, "series_type"), "rate")
+    expect_identical(attr(series, "method"), "none")
+  }
+})
+
+test_that("convert_ts_data_to_ets leaves koma_ts elements untouched", {
+  ts_data <- simulated_data$ts_data[c("consumption", "manufacturing")]
+
+  result <- koma:::convert_ts_data_to_ets(ts_data)
+
+  expect_identical(result, ts_data)
 })
 
 test_that("extract.koma_estimate returns texreg objects", {
@@ -1440,4 +1468,124 @@ test_that("format.koma_estimate avoids substring replacement", {
     "0\\.3\\s*\\*\\s*2\\s*\\*\\s*world_gdp_level\\.L\\(1\\)",
     formatted
   ))
+})
+
+test_that("identity equations can be placed anywhere in the system, not only last", {
+  skip_on_cran()
+  dates <- list(estimation = list(start = c(1977, 1), end = c(2019, 4)))
+  exogenous_variables <- c("real_interest_rate", "world_gdp", "population")
+  ts_data <- simulated_data$ts_data
+  stochastic_vars <- c(
+    "consumption", "investment", "current_account", "manufacturing", "service"
+  )
+
+  identity_last <-
+    "consumption ~ gdp + consumption.L(1:2),
+    investment ~ gdp + investment.L(1) + real_interest_rate,
+    current_account ~ current_account.L(1) + world_gdp,
+    manufacturing ~ manufacturing.L(1) + world_gdp,
+    service ~ service.L(1) + population + gdp,
+    gdp == 0.5*manufacturing + 0.5*service"
+
+  identity_interleaved <-
+    "consumption ~ gdp + consumption.L(1:2),
+    gdp == 0.5*manufacturing + 0.5*service,
+    investment ~ gdp + investment.L(1) + real_interest_rate,
+    current_account ~ current_account.L(1) + world_gdp,
+    manufacturing ~ manufacturing.L(1) + world_gdp,
+    service ~ service.L(1) + population + gdp"
+
+  sys_eq_last <- system_of_equations(identity_last, exogenous_variables)
+  sys_eq_interleaved <-
+    system_of_equations(identity_interleaved, exogenous_variables)
+
+  expect_setequal(sys_eq_last$stochastic_equations, stochastic_vars)
+  expect_setequal(sys_eq_interleaved$stochastic_equations, stochastic_vars)
+  expect_identical(names(sys_eq_last$identities), "gdp")
+  expect_identical(names(sys_eq_interleaved$identities), "gdp")
+
+  expect_true(model_identification(
+    sys_eq_interleaved$character_gamma_matrix,
+    sys_eq_interleaved$character_beta_matrix,
+    sys_eq_interleaved$identities
+  ))
+
+  fit_last <- withr::with_seed(
+    7,
+    estimate(
+      ts_data, sys_eq_last, dates,
+      options = list(gibbs = list(ndraws = 200))
+    )
+  )
+  fit_interleaved <- withr::with_seed(
+    7,
+    estimate(
+      ts_data, sys_eq_interleaved, dates,
+      options = list(gibbs = list(ndraws = 200))
+    )
+  )
+
+  expect_identical(names(fit_interleaved$estimates), stochastic_vars)
+  expect_false(any(vapply(fit_interleaved$estimates, is.null, logical(1))))
+
+  expect_equal(fit_interleaved$estimates, fit_last$estimates)
+
+  summary_last <- summary(fit_last, use_texreg = FALSE)
+  summary_interleaved <- summary(fit_interleaved, use_texreg = FALSE)
+  expect_s3_class(summary_interleaved, "koma_summary")
+  expect_equal(summary_interleaved$stats, summary_last$stats)
+})
+
+test_that("estimation progress is reported per Gibbs draw", {
+  skip_on_cran()
+  dates <- list(estimation = list(start = c(1977, 1), end = c(2019, 4)))
+  exogenous_variables <- c("world_gdp", "population")
+  ts_data <- simulated_data$ts_data
+  options <- list(gibbs = list(ndraws = 302))
+  # progressr only signals progress in interactive sessions by default
+  withr::local_options(progressr.enable = TRUE)
+
+  # total steps of the progress bar and the amounts reported against it
+  record_progress <- function(expr) {
+    steps <- NULL
+    amounts <- numeric(0)
+    withCallingHandlers(expr, progression = function(cnd) {
+      if (identical(cnd$type, "initiate")) steps <<- cnd$steps
+      if (identical(cnd$type, "update")) amounts <<- c(amounts, cnd$amount)
+    })
+    list(steps = steps, amounts = amounts)
+  }
+
+  sys_eq <- system_of_equations(
+    "consumption ~ gdp + consumption.L(1),
+    manufacturing ~ manufacturing.L(1) + world_gdp,
+    service ~ service.L(1) + population + gdp,
+    gdp == 0.5*manufacturing + 0.5*service",
+    exogenous_variables
+  )
+  progress <- record_progress(
+    estimates <- withr::with_seed(
+      7,
+      estimate(ts_data, sys_eq, dates, options = options)
+    )
+  )
+  # 3 stochastic equations x 302 draws; how the draws are split into updates
+  # depends on timing, but together they must add up to the total
+  expect_equal(progress$steps, 3 * 302)
+  expect_equal(sum(progress$amounts), 3 * 302)
+
+  # re-estimating one changed equation only counts the draws of that equation
+  sys_eq <- system_of_equations(
+    "consumption ~ gdp + consumption.L(1),
+    manufacturing ~ manufacturing.L(1) + manufacturing.L(2) + world_gdp,
+    service ~ service.L(1) + population + gdp,
+    gdp == 0.5*manufacturing + 0.5*service",
+    exogenous_variables
+  )
+  progress <- record_progress(withr::with_seed(
+    7,
+    estimate(ts_data, sys_eq, dates, options = options, estimates = estimates)
+  ))
+  expect_equal(progress$steps, 302)
+  expect_equal(sum(progress$amounts), 302)
 })

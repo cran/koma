@@ -190,6 +190,12 @@ new_forecast <- function(estimates, dates, restrictions, options) {
 
   horizon <- length(seq(dates$forecast$start, dates$forecast$end, by = 1 / frequency))
 
+  restrictions <- validate_restrictions(
+    restrictions,
+    estimates$sys_eq$endogenous_variables,
+    horizon
+  )
+
   edge <- detect_edge(
     rate(ts_data[estimates$sys_eq$endogenous_variables]),
     dates$estimation$start,
@@ -243,8 +249,7 @@ new_forecast <- function(estimates, dates, restrictions, options) {
     rate(ts_data),
     estimates$sys_eq$endogenous_variables,
     estimates$sys_eq$total_exogenous_variables,
-    dates$estimation$start, dates$current,
-    state = list(warning_issued = TRUE)
+    dates$estimation$start, dates$current
   )
 
   y_matrix <- balanced_data$y_matrix
@@ -308,72 +313,7 @@ new_forecast <- function(estimates, dates, restrictions, options) {
 }
 
 validate_forecast_input <- function(estimates, dates, frequency = 4, ...) {
-  if (is.null(dates$forecast) ||
-    is.null(dates$forecast$start) ||
-    is.null(dates$forecast$end) ||
-    length(dates$forecast$start) == 0L ||
-    length(dates$forecast$end) == 0L
-  ) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} and {.field end} must be provided"
-    ))
-  }
-  if (!is.numeric(dates$forecast$start) || !is.numeric(dates$forecast$end)) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} and {.field end} must be numeric"
-    ))
-  }
-  if (!length(dates$forecast$start) %in% c(1L, 2L) ||
-    !length(dates$forecast$end) %in% c(1L, 2L)
-  ) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} and {.field end} must be length 1 or 2"
-    ))
-  }
-  if (anyNA(dates$forecast$start) ||
-    anyNA(dates$forecast$end) ||
-    any(!is.finite(dates$forecast$start), na.rm = TRUE) ||
-    any(!is.finite(dates$forecast$end), na.rm = TRUE)
-  ) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} and {.field end} must be finite"
-    ))
-  }
-  if (length(dates$forecast$start) == 2L &&
-    (dates$forecast$start[2] < 1L || dates$forecast$start[2] > frequency)
-  ) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} period must be between 1 and {frequency}"
-    ))
-  }
-  if (length(dates$forecast$end) == 2L &&
-    (dates$forecast$end[2] < 1L || dates$forecast$end[2] > frequency)
-  ) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field end} period must be between 1 and {frequency}"
-    ))
-  }
-
-  forecast_start <- dates_to_num(dates$forecast$start, frequency = frequency)
-  forecast_end <- dates_to_num(dates$forecast$end, frequency = frequency)
-  if (length(forecast_start) != 1L || length(forecast_end) != 1L) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} and {.field end} must be scalar dates"
-    ))
-  }
-  if (forecast_start > forecast_end) {
-    cli::cli_abort(c(
-      "!" = "Invalid {.field dates$forecast}:",
-      "x" = "{.field start} must be before {.field end}"
-    ))
-  }
+  validate_date_range(dates, "forecast", frequency = frequency)
 
   current_date <- iterate_n_periods(dates$forecast$start, -1, frequency)
 

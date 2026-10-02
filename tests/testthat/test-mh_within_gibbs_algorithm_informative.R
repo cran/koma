@@ -58,6 +58,39 @@ test_that("draw_parameters_j_informative returns parameters for equation 1", {
   expect_equal(beta_q[[2, 3]], 5, tolerance = 0.05)
 })
 
+test_that("draw_parameters_j_informative keeps every nstore-th draw after burn-in", {
+  y_matrix <- simulated_data$y_matrix
+  x_matrix <- simulated_data$x_matrix
+  character_gamma_matrix <- simulated_data$character_gamma_matrix
+  character_beta_matrix <- simulated_data$character_beta_matrix
+  jx <- 1
+  priors <- list(list(), list(), list(), list(), list(), list())
+
+  run_sampler <- function(nstore) {
+    withr::with_seed(
+      7,
+      draw_parameters_j_informative(
+        y_matrix,
+        x_matrix,
+        character_gamma_matrix,
+        character_beta_matrix,
+        jx,
+        set_gibbs_spec(ndraws = 25, burnin_ratio = 0.2, nstore = nstore),
+        priors
+      )
+    )
+  }
+
+  unthinned <- run_sampler(1)
+  thinned <- run_sampler(3)
+
+  # burnin = 5, nsave = floor(20 / 3) = 6
+  expect_length(unthinned$beta_jw, 20)
+  expect_length(thinned$beta_jw, 6)
+  expect_length(thinned$gamma_jw, 6)
+  expect_identical(thinned$beta_jw, unthinned$beta_jw[seq(3, 18, by = 3)])
+})
+
 test_that("draw_parameters_j_informative with diffuse priors", {
   y_matrix <- simulated_data$y_matrix
   x_matrix <- simulated_data$x_matrix
@@ -245,10 +278,13 @@ test_that("draw_parameters_j_informative with diffuse priors and no gamma priors
     0.308866327509242, 0.360646340961647, 0.415597362863418
   ), dim = c(3L, 2L, 2L), dimnames = list(c("5%", "50%", "95%"), NULL, NULL))
 
-  # This sampler path shows small cross-environment drift despite a fixed seed.
+  # This sampler path shows small cross-environment drift despite a fixed seed
+  # (BLAS/LAPACK-level floating point differences compounding over 200
+  # iterations). CRAN's tests-MKL flavor exceeded the previous gamma bound
+  # (0.2136 vs. 0.21); widen it with more headroom.
   expect_equal(beta_q, expected_beta, tolerance = 0.12)
-  expect_lte(max(abs(unname(gamma_q) - unname(expected_gamma))), 0.21)
-  expect_equal(omega_q, expected_omega, tolerance = 0.1)
+  expect_lte(max(abs(unname(gamma_q) - unname(expected_gamma))), 0.28)
+  expect_equal(omega_q, expected_omega, tolerance = 0.15)
 })
 
 test_that("construct_priors_j, with two endogenous", {

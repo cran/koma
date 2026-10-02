@@ -30,12 +30,16 @@
 #' @param jx The index of equation \eqn{j}.
 #' @param gibbs_sampler An object of class `gibbs_sampler` that holds an
 #' equations gibbs settings.
+#' @param progress Function called with the number of completed draws since
+#' its last call, at most about every 0.5 seconds. Used to update the progress
+#' bar.
 #'
 #' @return A list containing matrices for the saved draws of parameters and
 #' additional diagnostic information.
 #' @keywords internal
 draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
-                              character_beta_matrix, jx, gibbs_sampler) {
+                              character_beta_matrix, jx, gibbs_sampler,
+                              progress = function(amount) invisible()) {
   out <- list()
   out$beta_jw <- vector("list", gibbs_sampler$nsave)
   out$theta_jw <- vector("list", gibbs_sampler$nsave)
@@ -44,6 +48,17 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   out$omega_tilde_jw <- vector("list", gibbs_sampler$nsave)
   count_accepted <- matrix(0, gibbs_sampler$ndraws, 1)
 
+  # x_matrix is fixed across all draws of this equation, so x'x (and the
+  # restricted-column x_b'x_b used for beta_hat) are invariant across the
+  # whole loop below. Compute them once here instead of on every call.
+  xtx <- crossprod(x_matrix)
+  indices_to_remove <- grep("\\b0\\b", character_beta_matrix[, jx])
+  if (length(indices_to_remove) > 0) {
+    xbtxb <- crossprod(x_matrix[, -indices_to_remove, drop = FALSE])
+  } else {
+    xbtxb <- xtx
+  }
+
   ##### 1. Initialize sampler:
   # get starting value for Metropolis-Hastings algorithm
   initial_parameter <- initialize_sampler(
@@ -51,13 +66,20 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
     x_matrix,
     character_gamma_matrix,
     character_beta_matrix,
-    jx
+    jx,
+    xtx,
+    xbtxb
   )
 
   gamma_jw_1 <- initial_parameter$gamma_parameters_j
   choelsky_of_inverse_hessian <- initial_parameter$cholesky_of_inverse_hessian
 
   gx <- 1 # initial value for saved draws
+  # Report progress at most every 0.5 seconds; each update has a cost, and
+  # with parallel workers the main process handles the updates of all workers.
+  # The clock is compared as a plain number: a difftime costs ~15x more.
+  pending_draws <- 0L
+  last_report <- unclass(Sys.time())
 
   #### Start Gibbs sampler
   for (wx in 1:gibbs_sampler$ndraws) {
@@ -70,7 +92,9 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
       jx,
       gamma_jw_1,
       gibbs_sampler$tau,
-      choelsky_of_inverse_hessian
+      choelsky_of_inverse_hessian,
+      xtx,
+      xbtxb
     )
 
     # Set count to 1 if the step has been accepted
@@ -83,17 +107,18 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
     ##### 3. Draw Omega_j from inverse Wishart distribution
     results_draw_omega_j <- draw_omega_j(
       y_matrix, x_matrix, character_gamma_matrix, character_beta_matrix,
-      jx, gamma_jw
+      jx, gamma_jw, xtx, xbtxb
     )
 
     ##### Draw 4. Theta_j from multivariate normal distribution
     results_draw_theta_j <- draw_theta_j(
       y_matrix, x_matrix, character_gamma_matrix, character_beta_matrix,
-      jx, gamma_jw, results_draw_omega_j$omega_tilde_jw
+      jx, gamma_jw, results_draw_omega_j$omega_tilde_jw, xtx
     )
 
     ##### Save draws
-    if (wx > gibbs_sampler$burnin) {
+    if (wx > gibbs_sampler$burnin &&
+      (wx - gibbs_sampler$burnin) %% gibbs_sampler$nstore == 0) {
       out$beta_jw[[gx]] <- results_draw_theta_j$beta_jw
       out$theta_jw[[gx]] <- results_draw_theta_j$theta_jw
       out$gamma_jw[[gx]] <- gamma_jw
@@ -101,7 +126,15 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
       out$omega_tilde_jw[[gx]] <- results_draw_omega_j$omega_tilde_jw
       gx <- gx + 1
     }
+
+    pending_draws <- pending_draws + 1L
+    if (unclass(Sys.time()) - last_report > 0.5) {
+      progress(pending_draws)
+      pending_draws <- 0L
+      last_report <- unclass(Sys.time())
+    }
   }
+  if (pending_draws > 0L) progress(pending_draws)
 
   if (all(is.na(out$gamma_jw))) count_accepted <- NA
   out$count_accepted <- count_accepted
@@ -120,6 +153,11 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' algorithm.
 #'
 #' @inheritParams draw_parameters_j
+#' @param xtx Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+#' Gibbs draws, so it is computed once instead of on every call.
+#' @param xbtxb Precomputed \eqn{x_b'x_b}, where \eqn{x_b} is
+#' \eqn{x_matrix} restricted to the columns kept for equation \eqn{j}. Same
+#' rationale as `xtx`.
 #'
 #' @return A list containing the initial parameters for gamma
 #' (`gamma_parameters_j`) and the Cholesky factor of the
@@ -128,7 +166,8 @@ draw_parameters_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' If not, only the `gamma_parameters_j` parameter is returned as 0.
 #' @keywords internal
 initialize_sampler <- function(y_matrix, x_matrix, character_gamma_matrix,
-                               character_beta_matrix, jx) {
+                               character_beta_matrix, jx,
+                               xtx, xbtxb) {
   number_endogenous_in_j <-
     length(grep("gamma", character_gamma_matrix[, jx]))
   if (number_endogenous_in_j == 0) {
@@ -146,6 +185,8 @@ initialize_sampler <- function(y_matrix, x_matrix, character_gamma_matrix,
       character_gamma_matrix = character_gamma_matrix,
       character_beta_matrix = character_beta_matrix,
       jx = jx,
+      xtx = xtx,
+      xbtxb = xbtxb,
       hessian = TRUE,
       method = "BFGS"
     )
@@ -153,9 +194,9 @@ initialize_sampler <- function(y_matrix, x_matrix, character_gamma_matrix,
     # Use maximum as initial condition
     gamma_parameters_j <- optimize_residuals$par
     # Use inverse of Hessian to approximate dispersion of target function
-    inverse_hessian <- Matrix::solve(optimize_residuals$hessian)
+    inverse_hessian <- solve(optimize_residuals$hessian)
     # Cholesky factor of inverse of Hessian
-    cholesky_of_inverse_hessian <- t(Matrix::chol(inverse_hessian))
+    cholesky_of_inverse_hessian <- t(chol(inverse_hessian))
 
     list(
       gamma_parameters_j = gamma_parameters_j,
@@ -176,6 +217,11 @@ initialize_sampler <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' @param tau A tuning scalar \eqn{\tau} to adjust the acceptance rate.
 #' @param cholesky_of_inverse_hessian The Cholesky factor \eqn{L} of the
 #' inverse Hessian matrix \eqn{M^{-1}} used to generate candidate draws.
+#' @param xtx Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+#' Gibbs draws, so it is computed once instead of on every call.
+#' @param xbtxb Precomputed \eqn{x_b'x_b}, where \eqn{x_b} is
+#' \eqn{x_matrix} restricted to the columns kept for equation \eqn{j}. Same
+#' rationale as `xtx`.
 #'
 #' @return A \eqn{(n_j \times 1)} matrix with the either accepted candidate or
 #' previous gamma parameters. Returns 0 if there are no endogenous
@@ -184,7 +230,8 @@ initialize_sampler <- function(y_matrix, x_matrix, character_gamma_matrix,
 draw_gamma_j <- function(y_matrix, x_matrix, character_gamma_matrix,
                          character_beta_matrix, jx,
                          gamma_parameters_j, tau,
-                         cholesky_of_inverse_hessian) {
+                         cholesky_of_inverse_hessian,
+                         xtx, xbtxb) {
   number_endogenous_in_j <- length(grep("gamma", character_gamma_matrix[, jx]))
   if (number_endogenous_in_j == 0) {
     gamma_parameters_j <- NA
@@ -208,7 +255,9 @@ draw_gamma_j <- function(y_matrix, x_matrix, character_gamma_matrix,
       character_gamma_matrix = character_gamma_matrix,
       character_beta_matrix = character_beta_matrix,
       jx = jx,
-      gamma_parameters_j = candidate_gamma_parameters_j
+      gamma_parameters_j = candidate_gamma_parameters_j,
+      xtx = xtx,
+      xbtxb = xbtxb
     )
     target_evaluation_previous <- -target_j(
       y_matrix = y_matrix,
@@ -216,7 +265,9 @@ draw_gamma_j <- function(y_matrix, x_matrix, character_gamma_matrix,
       character_gamma_matrix = character_gamma_matrix,
       character_beta_matrix = character_beta_matrix,
       jx = jx,
-      gamma_parameters_j = gamma_parameters_j
+      gamma_parameters_j = gamma_parameters_j,
+      xtx = xtx,
+      xbtxb = xbtxb
     )
     # Acceptance probability
     alpha <- min(
@@ -239,12 +290,18 @@ draw_gamma_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' for each row of \eqn{[ u_j,  V_j ]}.
 #'
 #' @inheritParams draw_parameters_j
+#' @param xtx Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+#' Gibbs draws, so it is computed once instead of on every call.
+#' @param xbtxb Precomputed \eqn{x_b'x_b}, where \eqn{x_b} is
+#' \eqn{x_matrix} restricted to the columns kept for equation \eqn{j}. Same
+#' rationale as `xtx`.
 #'
 #' @return List containing \eqn{{\tilde{\Omega}}_j^{(w)}} as `omega_tilde_jw`
 #' and \eqn{\Omega_j^{(w)}} as `omega_jw`.
 #' @keywords internal
 draw_omega_j <- function(y_matrix, x_matrix, character_gamma_matrix,
-                         character_beta_matrix, jx, gamma_parameters_j) {
+                         character_beta_matrix, jx, gamma_parameters_j,
+                         xtx, xbtxb) {
   number_endogenous_in_j <-
     length(grep("gamma", character_gamma_matrix[, jx]))
   # number of exogenous, predetermined variables + intercept
@@ -254,7 +311,7 @@ draw_omega_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   if (number_endogenous_in_j == 0) {
     z_matrix_j <- as.matrix(y_matrix[, jx])
     beta_hat_j <- construct_beta_hat_j_matrix(
-      x_matrix, z_matrix_j, character_beta_matrix, jx
+      x_matrix, z_matrix_j, character_beta_matrix, jx, xbtxb
     )
 
     theta_hat <- beta_hat_j
@@ -266,9 +323,9 @@ draw_omega_j <- function(y_matrix, x_matrix, character_gamma_matrix,
       gamma_parameters_j, y_matrix, y_matrix_j, jx
     )
     beta_hat_j <- construct_beta_hat_j_matrix(
-      x_matrix, z_matrix_j, character_beta_matrix, jx
+      x_matrix, z_matrix_j, character_beta_matrix, jx, xbtxb
     )
-    pi_hat_0 <- construct_pi_hat_0(x_matrix, z_matrix_j)
+    pi_hat_0 <- construct_pi_hat_0(x_matrix, z_matrix_j, xtx)
 
     theta_hat <- cbind(beta_hat_j, pi_hat_0)
     a_matrix_j <- diag((number_endogenous_in_j + 1))
@@ -276,9 +333,9 @@ draw_omega_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   }
 
   # Compute scale parameter matrix
-  omega_hat <- t(Matrix::solve(a_matrix_j)) %*%
+  omega_hat <- t(solve(a_matrix_j)) %*%
     t(z_matrix_j - x_matrix %*% theta_hat) %*%
-    (z_matrix_j - x_matrix %*% theta_hat) %*% Matrix::solve(a_matrix_j)
+    (z_matrix_j - x_matrix %*% theta_hat) %*% solve(a_matrix_j)
 
   # Draw Omega_j
   omega_jw <- riwish(
@@ -304,7 +361,7 @@ draw_omega_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' @keywords internal
 draw_theta_j <- function(y_matrix, x_matrix, character_gamma_matrix,
                          character_beta_matrix, jx, gamma_parameters_j,
-                         omega_tilde_jw) {
+                         omega_tilde_jw, xtx) {
   number_endogenous_in_j <- length(grep("gamma", character_gamma_matrix[, jx]))
 
   if (number_endogenous_in_j == 0) {
@@ -318,7 +375,7 @@ draw_theta_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 
   # Compute unrestricted posterior mean
   # c() vectorizes matrix
-  theta_hat <- c(construct_theta_hat_j(x_matrix, z_matrix_j))
+  theta_hat <- c(construct_theta_hat_j(x_matrix, z_matrix_j, xtx))
 
   # Permute theta_hat such that the first block consists of all free
   # parameters and the second block contains all parameters that are
@@ -359,7 +416,7 @@ draw_theta_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   theta_p2 <- theta_p[-(1:seperate_blocks_at)]
 
   # Compute unrestricted posterior variance
-  xi <- kronecker(omega_tilde_jw, Matrix::solve(t(x_matrix) %*% x_matrix))
+  xi <- kronecker(omega_tilde_jw, solve(xtx))
 
   # Permute xi
   xi_p <- permutation_matrix %*% xi %*% t(permutation_matrix)
@@ -372,8 +429,9 @@ draw_theta_j <- function(y_matrix, x_matrix, character_gamma_matrix,
     xi_p22 <- xi_p[(seperate_blocks_at + 1):length(theta_hat), (seperate_blocks_at + 1):length(theta_hat), drop = FALSE]
 
     # Compute update of posterior mean and posterior variance
-    theta_bar <- theta_p1 - xi_p12 %*% Matrix::solve(xi_p22) %*% theta_p2
-    xi_bar <- xi_p11 - xi_p12 %*% Matrix::solve(xi_p22) %*% xi_p21
+    inverse_xi_p22 <- solve(xi_p22)
+    theta_bar <- theta_p1 - xi_p12 %*% inverse_xi_p22 %*% theta_p2
+    xi_bar <- xi_p11 - xi_p12 %*% inverse_xi_p22 %*% xi_p21
   } else {
     theta_bar <- theta_p1
     xi_bar <- xi_p11
@@ -409,7 +467,8 @@ draw_theta_j <- function(y_matrix, x_matrix, character_gamma_matrix,
 #' in the MH algorithm. Returns NA if there are no gamma parameters.
 #' @keywords internal
 target_j <- function(y_matrix, x_matrix, character_gamma_matrix,
-                     character_beta_matrix, jx, gamma_parameters_j) {
+                     character_beta_matrix, jx, gamma_parameters_j,
+                     xtx, xbtxb) {
   y_matrix_j <- construct_y_matrix_j(y_matrix, character_gamma_matrix, jx)
   if (anyNA(y_matrix_j)) {
     return(NA)
@@ -431,10 +490,10 @@ target_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   )
 
   beta_hat_j <- construct_beta_hat_j_matrix(
-    x_matrix, z_matrix_j, character_beta_matrix, jx
+    x_matrix, z_matrix_j, character_beta_matrix, jx, xbtxb
   )
 
-  pi_hat_0 <- construct_pi_hat_0(x_matrix, z_matrix_j)
+  pi_hat_0 <- construct_pi_hat_0(x_matrix, z_matrix_j, xtx)
 
   # Compute theta_hat matrix
   theta_hat <- cbind(beta_hat_j, pi_hat_0)
@@ -442,7 +501,7 @@ target_j <- function(y_matrix, x_matrix, character_gamma_matrix,
   # Evaluate log of target function
   # (multiply by -1: maximize instead of minimize)
   target_result <- ((number_of_observations - number_of_exogenous) / 2) *
-    log(Matrix::det(t(z_matrix_j - x_matrix %*% theta_hat) %*%
+    log(det(t(z_matrix_j - x_matrix %*% theta_hat) %*%
       (z_matrix_j - x_matrix %*% theta_hat)))
 
   target_result

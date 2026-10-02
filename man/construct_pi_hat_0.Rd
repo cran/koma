@@ -4,13 +4,16 @@
 \alias{construct_pi_hat_0}
 \title{Construct reduced form coefficients \eqn{\Pi_0}}
 \usage{
-construct_pi_hat_0(x_matrix, z_matrix_j)
+construct_pi_hat_0(x_matrix, z_matrix_j, xtx)
 }
 \arguments{
 \item{x_matrix}{A \eqn{(T \times k)} matrix \eqn{X} of observations on
 \eqn{k} exogenous variables.}
 
 \item{z_matrix_j}{A \eqn{Z_j = y_j - Y_j * \gamma_j} matrix.}
+
+\item{xtx}{Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+Gibbs draws, so it is computed once instead of on every call.}
 }
 \value{
 \eqn{\hat{\Pi_0}} with dimensions \eqn{(k \times n_j)}.

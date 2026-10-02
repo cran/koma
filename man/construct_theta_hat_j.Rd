@@ -4,13 +4,16 @@
 \alias{construct_theta_hat_j}
 \title{Construct \eqn{\hat{\Theta}_j}}
 \usage{
-construct_theta_hat_j(x_matrix, z_matrix_j)
+construct_theta_hat_j(x_matrix, z_matrix_j, xtx)
 }
 \arguments{
 \item{x_matrix}{A \eqn{(T \times k)} matrix \eqn{X} of observations on
 \eqn{k} exogenous variables.}
 
 \item{z_matrix_j}{A \eqn{Z_j = y_j - Y_j * \gamma_j} matrix.}
+
+\item{xtx}{Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+Gibbs draws, so it is computed once instead of on every call.}
 }
 \value{
 \eqn{\hat{\Theta}_j} with dimensions \eqn{(k \times (1 + n_j))}.

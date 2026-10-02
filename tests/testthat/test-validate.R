@@ -338,6 +338,31 @@ test_that("validate_priors", {
   expect_error(validate_priors(equation))
 })
 
+test_that("validate_priors accepts a negative prior mean", {
+  # validate_priors() used to extract terms via get_variables(), whose split
+  # regex treats "-" as a term separator with no regard for "{}" boundaries,
+  # so "{-0.4,0.1}gdp" was torn into "{" and "0.4,0.1}gdp" before the prior
+  # format was ever checked, and a legitimate negative-mean prior -- which
+  # extract_priors() has always supported -- was wrongly rejected.
+  expect_no_error(validate_priors("consumption~{-0.4,0.1}gdp"))
+  # leading-dot decimal without an integer part, also supported by
+  # extract_priors()
+  expect_no_error(validate_priors("consumption~{-.4,.1}gdp"))
+})
+
+test_that("validate_priors reports the full malformed prior, not a
+fragment truncated at a '-'", {
+  # Same root cause as above: get_variables()'s hyphen-splitting used to cut
+  # "{0-1000}constant" into "{0" and "1000}constant" before the format check
+  # ran, so the abort message showed only the truncated fragment "{0" instead
+  # of the user's actual (invalid) input.
+  expect_error(
+    validate_priors("consumption~{0-1000}constant+{0.4,0.1}gdp"),
+    "\\{0-1000\\}",
+    fixed = FALSE
+  )
+})
+
 # Validate single equations
 test_that("validate_equation processes valid R variable names correctly", {
   equation <- c("consumption123~constant+0.5*manufacturing+gdp")
@@ -425,4 +450,65 @@ test_that("validate_equation throws error for right-side variables with too
 many components separated by '*'", {
   equation <- c("consumption~constant+2*income*gdp")
   expect_error(validate_equation(equation))
+})
+
+test_that("validate_equation throws error for a bracket-indexed variable
+(indexed-variable syntax is not supported)", {
+  equation <- c("consumption~constant+gdp+covid[1:3]")
+  expect_error(validate_equation(equation))
+})
+
+test_that("validate_restrictions accepts valid restrictions", {
+  endogenous <- c("gdp", "manufacturing")
+
+  expect_null(validate_restrictions(NULL, endogenous, 4))
+  expect_equal(validate_restrictions(list(), endogenous, 4), list())
+
+  restrictions <- list(
+    gdp = list(value = c(0.5, 0.7), horizon = c(1, 3)),
+    manufacturing = list(horizon = 4L, value = 1)
+  )
+  expect_equal(validate_restrictions(restrictions, endogenous, 4), restrictions)
+})
+
+test_that("validate_restrictions rejects malformed restrictions", {
+  endogenous <- c("gdp", "manufacturing")
+  check <- function(restrictions, pattern) {
+    expect_error(
+      validate_restrictions(restrictions, endogenous, 4),
+      pattern,
+      class = "rlang_error"
+    )
+  }
+
+  check(c(gdp = 0.5), "named list")
+  check(data.frame(value = 0.5, horizon = 1), "named list")
+  check(list(list(value = 0.5, horizon = 1)), "named after")
+  check(
+    list(gdp = list(value = 0.5, horizon = 1), gdp = list(value = 1, horizon = 2)),
+    "Duplicate restrictions"
+  )
+  check(list(gdp = 0.5), "value.*horizon")
+  check(list(gdp = list(value = 0.5)), "value.*horizon")
+  check(list(gdp = list(value = "0.5", horizon = 1)), "numeric")
+  check(list(gdp = list(value = c(0.5, 0.7), horizon = 1)), "same, non-zero length")
+  check(list(gdp = list(value = numeric(0), horizon = numeric(0))), "same, non-zero length")
+  check(list(gdp = list(value = NA_real_, horizon = 1)), "missing or infinite")
+  check(list(gdp = list(value = 0.5, horizon = 0)), "between 1 and 4")
+  check(list(gdp = list(value = 0.5, horizon = 5)), "between 1 and 4")
+  check(list(gdp = list(value = 0.5, horizon = 1.5)), "whole numbers")
+  check(list(gdp = list(value = c(0.5, 0.7), horizon = c(2, 2))), "duplicates")
+})
+
+test_that("validate_restrictions drops non-endogenous variables with one warning", {
+  restrictions <- list(
+    gdp = list(value = 0.5, horizon = 1),
+    consumption = list(value = 0.5, horizon = 1)
+  )
+
+  expect_warning(
+    out <- validate_restrictions(restrictions, "gdp", 4),
+    "consumption"
+  )
+  expect_equal(out, restrictions["gdp"])
 })

@@ -63,3 +63,9 @@ x * 10
 x[1:2]
 x / x
 
+## ----plain-ts-conversion------------------------------------------------------
+level_series <- stats::ts(c(100, 101, 99, 103, 105, 104, 108, 110),
+  start = c(2020, 1), frequency = 4
+)
+as_ets(level_series, series_type = "level", method = "diff_log")
+

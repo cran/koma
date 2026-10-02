@@ -14,7 +14,8 @@ draw_theta_j_informative(
   jx,
   gamma_jw,
   omega_jw,
-  priors_j
+  priors_j,
+  xtx
 )
 }
 \arguments{
@@ -42,6 +43,9 @@ of the gamma matrix, where \eqn{n_j} is the number of endogenous variables in
 equation \eqn{j}.}
 
 \item{omega_jw}{\eqn{{\Omega}_j^{(w)}}}
+
+\item{xtx}{Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+Gibbs draws, so it is computed once instead of on every call.}
 }
 \value{
 List containing theta_jw and beta_jw

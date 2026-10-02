@@ -185,6 +185,65 @@ test_that("system_of_equation throws error when exogenous not declared", {
   )
 })
 
+test_that("system_of_equation errors clearly when a variable is both a
+stochastic equation and an identity", {
+  # "gdp" is declared both as a stochastic equation and as an identity.
+  # This is nonsensical (a variable can't simultaneously be estimated with
+  # an error term and hold exactly as a deterministic combination of other
+  # variables) and must be rejected before the gamma/beta matrices and
+  # identities are built from it -- otherwise it produces mismatched matrix
+  # dimensions and surfaces as an unrelated, low-level internal error deep in
+  # identity/weight construction instead of an understandable message.
+  equations <- c(
+    "gdp~consumption+investment",
+    "gdp==0.6*consumption+0.4*investment"
+  )
+  exogenous_variables <- c("consumption", "investment")
+
+  expect_error(
+    system_of_equations(equations, exogenous_variables),
+    "declared as both a stochastic equation and an identity"
+  )
+})
+
+test_that("validate_unique_endogenous_variables allows unique endogenous
+variables", {
+  expect_true(validate_unique_endogenous_variables(
+    c("gdp~consumption", "consumption==0.5*investment"),
+    c("gdp", "consumption")
+  ))
+})
+
+test_that("validate_unique_endogenous_variables gives a specific message when
+a variable is both a stochastic equation and an identity", {
+  expect_error(
+    validate_unique_endogenous_variables(
+      c("gdp~consumption+investment", "gdp==0.6*consumption+0.4*investment"),
+      c("gdp", "gdp")
+    ),
+    "declared as both a stochastic equation and an identity"
+  )
+})
+
+test_that("validate_unique_endogenous_variables falls back to the generic
+duplicate message for same-type duplicates", {
+  expect_error(
+    validate_unique_endogenous_variables(
+      c("gdp~consumption", "gdp~investment"),
+      c("gdp", "gdp")
+    ),
+    "Declared endogenous variables are not unique"
+  )
+
+  expect_error(
+    validate_unique_endogenous_variables(
+      c("gdp==0.5*consumption", "gdp==0.5*investment"),
+      c("gdp", "gdp")
+    ),
+    "Declared endogenous variables are not unique"
+  )
+})
+
 test_that("system_of_equations", {
   equations <- c(
     "consumption~gdp+consumption.L(1:2)+lag(investment, 2:3)",
@@ -509,6 +568,88 @@ test_that("extract_priors works when no priors supplied", {
   result <- extract_priors(equation)
   expected_result <- list()
   expect_equal(result, expected_result)
+})
+
+test_that("extract_priors applies a prior to every lag in .L() shorthand", {
+  # comma-separated lags
+  result <- extract_priors("y~{0,1000}x.L(1,3,5)")
+  expect_equal(result, list(
+    "x.L(1)" = list(0, 1000),
+    "x.L(3)" = list(0, 1000),
+    "x.L(5)" = list(0, 1000)
+  ))
+
+  # range
+  result <- extract_priors("y~{0.5,2}x.L(1:3)")
+  expect_equal(result, list(
+    "x.L(1)" = list(0.5, 2),
+    "x.L(2)" = list(0.5, 2),
+    "x.L(3)" = list(0.5, 2)
+  ))
+
+  # mixed range and single lags
+  result <- extract_priors("y~{0.5,2}x.L(1:2,4)")
+  expect_equal(result, list(
+    "x.L(1)" = list(0.5, 2),
+    "x.L(2)" = list(0.5, 2),
+    "x.L(4)" = list(0.5, 2)
+  ))
+})
+
+test_that("extract_priors applies a prior to every lag in lag() shorthand", {
+  result <- extract_priors("y~{0,1000}lag(x,1,3)")
+  expect_equal(result, list(
+    "x.L(1)" = list(0, 1000),
+    "x.L(3)" = list(0, 1000)
+  ))
+
+  result <- extract_priors("y~{0,1000}lag(x,1:2)")
+  expect_equal(result, list(
+    "x.L(1)" = list(0, 1000),
+    "x.L(2)" = list(0, 1000)
+  ))
+})
+
+test_that("extract_priors does not leak lag shorthand priors to the unlagged variable", {
+  result <- extract_priors("y~{0.2,0.1}x+{0,1000}x.L(1,2)")
+  expect_equal(result, list(
+    x = list(0.2, 0.1),
+    "x.L(1)" = list(0, 1000),
+    "x.L(2)" = list(0, 1000)
+  ))
+})
+
+test_that("extract_priors keeps order and error term with lag shorthand", {
+  equation <- "y~{.1,1000}1+{0,1000}y.L(1:2)+{.3,.1}x+{4,.002}"
+  result <- extract_priors(equation)
+  expect_equal(result, list(
+    constant = list(0.1, 1000),
+    "y.L(1)" = list(0, 1000),
+    "y.L(2)" = list(0, 1000),
+    x = list(0.3, 0.1),
+    epsilon = list(4, 0.002)
+  ))
+})
+
+test_that("lag shorthand priors reach every lagged coefficient in construct_priors_j", {
+  equations <- "consumption ~ {0.2,0.1}gdp + {0.9,10}consumption.L(1,3),
+  gdp == consumption + investment"
+  sys_eq <- system_of_equations(equations, c("investment"))
+
+  priors_j <- construct_priors_j(
+    sys_eq$priors, sys_eq$character_gamma_matrix,
+    sys_eq$character_beta_matrix, 1
+  )
+
+  beta_rows <- rownames(sys_eq$character_beta_matrix)
+  for (lagged in c("consumption.L(1)", "consumption.L(3)")) {
+    pos <- which(beta_rows == lagged)
+    expect_equal(priors_j$theta_mean[pos], 0.9, label = lagged)
+    expect_equal(priors_j$theta_vcv[pos, pos], 10, label = lagged)
+  }
+  # the endogenous gdp prior is untouched by the lag shorthand
+  expect_equal(priors_j$gamma_mean[1], 0.2)
+  expect_equal(priors_j$gamma_vcv[1, 1], 0.1)
 })
 
 test_that("get_endogenous_variables returns the correct endogenous variables", {
@@ -954,6 +1095,84 @@ test_that("extract_lagged_vars returns the correct lagged variables", {
   expect_equal(sort(result), sort(expected))
 })
 
+test_that("expand_dummies expands a range spec", {
+  equation <- "consp~ydispbr+consp.L(1)+dummies(covid,1:8)"
+  expected <- paste0(
+    "consp~ydispbr+consp.L(1)+",
+    paste(paste0("covid_", 1:8), collapse = "+")
+  )
+  expect_equal(expand_dummies(equation), expected)
+})
+
+test_that("expand_dummies expands a range + list spec", {
+  equation <- "y~x1+dummies(season,1:3,5)"
+  expect_equal(expand_dummies(equation), "y~x1+season_1+season_2+season_3+season_5")
+})
+
+test_that("expand_dummies handles a dummies() call at the start, middle, and
+end of the RHS", {
+  expect_equal(expand_dummies("y~dummies(covid,1:2)+x1"), "y~covid_1+covid_2+x1")
+  expect_equal(expand_dummies("y~x1+dummies(covid,1:2)+x2"), "y~x1+covid_1+covid_2+x2")
+  expect_equal(expand_dummies("y~x1+dummies(covid,1:2)"), "y~x1+covid_1+covid_2")
+})
+
+test_that("expand_dummies expands multiple dummies() calls in one equation", {
+  equation <- "y~x1+dummies(covid,1:2)+dummies(season,1:2)"
+  expect_equal(expand_dummies(equation), "y~x1+covid_1+covid_2+season_1+season_2")
+})
+
+test_that("expand_dummies leaves equations without dummies() unchanged", {
+  equation <- "y~x1+x2"
+  expect_equal(expand_dummies(equation), equation)
+})
+
+test_that("expand_dummies throws a clear error for an empty spec", {
+  expect_error(expand_dummies("y~x1+dummies(covid,)"), "Invalid.*dummies")
+})
+
+test_that("expand_dummies throws a clear error for a non-numeric spec", {
+  expect_error(expand_dummies("y~x1+dummies(covid,abc)"), "Invalid.*dummies")
+})
+
+test_that("expand_dummies throws a clear error for an invalid prefix", {
+  expect_error(expand_dummies("y~x1+dummies(1covid,1:8)"), "Invalid.*dummies")
+})
+
+test_that("system_of_equations expands dummies() and requires the expanded
+names to be declared as exogenous", {
+  equation <- "consp~ydispbr+consp.L(1)+dummies(covid,1:8)"
+  exogenous_variables <- c("ydispbr", paste0("covid_", 1:8))
+
+  result <- system_of_equations(equation, exogenous_variables)
+
+  expected_eq <- paste0(
+    "consp~constant+ydispbr+consp.L(1)+",
+    paste(paste0("covid_", 1:8), collapse = "+")
+  )
+  expect_equal(result$equations, expected_eq)
+})
+
+test_that("system_of_equations does not auto-register dummies() variables:
+a missing declaration still errors", {
+  equation <- "consp~ydispbr+dummies(covid,1:8)"
+  # covid_5 deliberately left out
+  exogenous_variables <- c("ydispbr", paste0("covid_", c(1:4, 6:8)))
+
+  expect_error(
+    system_of_equations(equation, exogenous_variables),
+    "covid_5"
+  )
+})
+
+test_that("dummies() at the end of the RHS still allows a trailing
+equation-specific setting", {
+  equation <- "y~x1+dummies(covid,1:2)[tau=1.2]"
+  result <- system_of_equations(equation, exogenous_variables = c("x1", "covid_1", "covid_2"))
+
+  expect_equal(result$equations, "y~constant+x1+covid_1+covid_2")
+  expect_equal(result$equation_settings$y$tau, 1.2)
+})
+
 test_that("no settings yields empty list", {
   equation <- "y~x1+x2"
   expect_equal(extract_settings(equation), list())
@@ -1001,4 +1220,134 @@ test_that("extract_settings, strings", {
 test_that("extract_settings, not parsable throws error", {
   equation <- "y~x1[a=foo,b=1]"
   expect_error(extract_settings(equation))
+})
+
+test_that("extract_settings ignores a bracketed term without '=' (not a
+setting)", {
+  equation <- "y~x1+covid[1:3]"
+  expect_equal(extract_settings(equation), list())
+})
+
+test_that("system_of_equations errors instead of silently dropping a
+bracketed term at the end of the RHS", {
+  equation <- "consp~ydispbr+covid[1:3]"
+  expect_error(
+    system_of_equations(equation, exogenous_variables = c("ydispbr", "covid"))
+  )
+})
+
+test_that("system_of_equations rejects a malformed prior instead of silently
+turning it into NA", {
+  # extract_priors() runs on the raw equation and validate_priors() (which
+  # already knows how to reject a ';' separator, see test-validate.R) is only
+  # ever called on the equation *after* parse_equation() has stripped all
+  # "{...}" prior syntax out of it -- so a malformed prior never reaches a
+  # validator at all. Today this silently sets the prior's mean/variance to
+  # NA (with only a generic base-R coercion warning) instead of failing
+  # loudly at parse time, and the NA would otherwise only surface much later,
+  # deep inside estimation.
+  equation <- "consumption~{0;1000}constant+{0.4,0.1}gdp"
+
+  expect_error(
+    system_of_equations(equation, exogenous_variables = "gdp")
+  )
+})
+
+test_that("system_of_equations rejects a stochastic equation that references
+its own dependent variable on the right-hand side", {
+  # construct_gamma_matrix() explicitly excludes the equation's own
+  # endogenous variable when matching RHS terms against endogenous variables
+  # (it searches endogenous_variables[-ix]), and construct_beta_matrix() only
+  # matches against exogenous variables -- so a bare, un-lagged self
+  # reference like "gdp" on the RHS of the "gdp" equation matches nothing and
+  # is silently dropped from both matrices instead of raising an error. This
+  # is almost always a typo for a lagged self reference, e.g. "gdp.L(1)".
+  equations <- c(
+    "gdp~gdp+x1",
+    "y~gdp+x2"
+  )
+  exogenous_variables <- c("x1", "x2")
+
+  expect_error(
+    system_of_equations(equations, exogenous_variables)
+  )
+})
+
+test_that("system_of_equations rejects a lag/index spec with a stray extra
+colon instead of silently truncating it", {
+  # is_valid_var()'s lag pattern ("\\.L\\([0-9:,]+\\)") accepts any run of
+  # digits/colons/commas, so a malformed spec like "1:2:3" passes equation
+  # validation. parse_index_spec() then does
+  # `bounds <- as.integer(strsplit(part, ":")[[1]])` and only ever reads
+  # bounds[1] and bounds[2], so the "3" is silently dropped and the equation
+  # parses as if the user had written ".L(1:2)". dummies() guards the same
+  # style of spec with a strict regex plus a tryCatch (see
+  # "expand_dummies throws a clear error for a non-numeric spec" above); lag
+  # notation has no equivalent guard.
+  equation <- "y~gdp.L(1:2:3)+x1"
+
+  expect_error(
+    system_of_equations(equation, exogenous_variables = c("gdp", "x1"))
+  )
+})
+
+test_that("system_of_equations still accepts a negative prior mean", {
+  # Regression test: making validate_priors() actually run against real
+  # equations (above) initially broke this, because validate_priors() used
+  # to tokenize via get_variables(), whose split regex treats "-" as a term
+  # separator irrespective of "{}" boundaries, tearing a negative-mean prior
+  # like "{-0.4,0.1}" apart before the format check ever saw it whole.
+  result <- system_of_equations(
+    "consumption~{-0.4,0.1}gdp", exogenous_variables = "gdp"
+  )
+
+  expect_equal(result$priors, list(list(gdp = list(-0.4, 0.1))))
+})
+
+test_that("parse_equation errors clearly on a missing right-hand side", {
+  # A trailing operator with nothing after it (e.g. "y ~") used to leave
+  # `rhs` as NA, which paste0() then silently stringified into the literal
+  # text "NA", surfacing far downstream as a baffling
+  # "Undeclared exogenous variable: NA" instead of pointing at the actual
+  # problem.
+  expect_error(parse_equation("y~"), "no right-hand side")
+  expect_error(parse_equation("y ~"), "no right-hand side")
+  expect_error(
+    system_of_equations("y~", exogenous_variables = character(0)),
+    "no right-hand side"
+  )
+})
+
+test_that("parse_equation errors clearly on a missing left-hand side", {
+  expect_error(parse_equation("~x1"), "no left-hand side")
+})
+
+test_that("validate_thetas_exist reports which theta is missing", {
+  # get_identities()'s theta/matrix consistency check used to give a single
+  # generic message ("Not all thetas in weights list exist also in
+  # character matrices.") with no indication of which theta or equation was
+  # at fault. This is a defensive invariant check -- under normal pipeline
+  # use, every theta it validates was extracted directly from the very
+  # matrices it checks against, so it should never actually fire on real
+  # user input (validate_completeness() already rules out undeclared or
+  # mismatched variables earlier in the pipeline). It exists in case a
+  # future change to construct_gamma_matrix()/construct_beta_matrix() ever
+  # desynchronizes the two, so the test constructs a mismatch directly
+  # rather than trying to reach it through system_of_equations().
+  expect_no_error(
+    validate_thetas_exist(
+      c("theta1_2"),
+      matrix("theta1_2", 1, 1),
+      matrix(character(0), 0, 0)
+    )
+  )
+
+  expect_error(
+    validate_thetas_exist(
+      c("theta1_2", "theta9_9"),
+      matrix("theta1_2", 1, 1),
+      matrix(character(0), 0, 0)
+    ),
+    "theta9_9"
+  )
 })

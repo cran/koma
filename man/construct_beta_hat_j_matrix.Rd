@@ -4,7 +4,13 @@
 \alias{construct_beta_hat_j_matrix}
 \title{Construct \eqn{\hat{\beta_j}}}
 \usage{
-construct_beta_hat_j_matrix(x_matrix, z_matrix_j, character_beta_matrix, jx)
+construct_beta_hat_j_matrix(
+  x_matrix,
+  z_matrix_j,
+  character_beta_matrix,
+  jx,
+  xbtxb
+)
 }
 \arguments{
 \item{x_matrix}{A \eqn{(T \times k)} matrix \eqn{X} of observations on
@@ -18,6 +24,11 @@ matrix are \eqn{(k \times n)}, where \eqn{k} is the number of
 exogenous variables and \eqn{n} the number of equations.}
 
 \item{jx}{The index of equation \eqn{j}.}
+
+\item{xbtxb}{Precomputed \eqn{x_b'x_b}, where \eqn{x_b} is
+\eqn{x_matrix} restricted to the columns kept for equation \eqn{j}. This
+is invariant across Gibbs draws for a given equation, so it is computed
+once per equation instead of on every call.}
 }
 \value{
 \eqn{\hat{\beta_j}} with dimensions \eqn{k \times 1}.

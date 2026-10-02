@@ -70,10 +70,11 @@ new_plot <- function(x, ...) {
   theme <- if (is.null(theme)) init_koma_theme() else merge_theme(theme)
 
   # sanity checks
-  stopifnot(
-    "variables must be a non-NULL character vector." =
-      !is.null(variables) || is.character(variables)
-  )
+  if (!is.character(variables) || length(variables) == 0L || anyNA(variables)) {
+    cli::cli_abort(
+      "`variables` must be a non-empty character vector of variable names."
+    )
+  }
 
   # check plotly availability
   if (!requireNamespace("plotly", quietly = TRUE)) {
@@ -138,6 +139,11 @@ new_plot <- function(x, ...) {
 
   # Index level data at dates if start and end dates provided
   if (!any(is.null(theme$index$start), is.null(theme$index$end))) {
+    if (!is.null(fan_data)) {
+      fan_data <- rebase_fan_data(
+        fan_data, level(out), theme$index$start, theme$index$end
+      )
+    }
     out <- rebase(out, theme$index$start, theme$index$end)
   }
 

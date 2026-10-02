@@ -4,7 +4,7 @@
 \alias{construct_theta_bar_j}
 \title{Construct \eqn{\bar{\Theta}_j}}
 \usage{
-construct_theta_bar_j(x_matrix, z_matrix_j, priors_j, omega_tilde_jw)
+construct_theta_bar_j(x_matrix, z_matrix_j, priors_j, omega_tilde_jw, xtx)
 }
 \arguments{
 \item{x_matrix}{A \eqn{(T \times k)} matrix \eqn{X} of observations on
@@ -14,6 +14,9 @@ construct_theta_bar_j(x_matrix, z_matrix_j, priors_j, omega_tilde_jw)
 
 \item{omega_tilde_jw}{A variance-covariance matrix
 \eqn{\tilde{\Omega}_j = A'_j \Omega_j A_j} for row \eqn{j}.}
+
+\item{xtx}{Precomputed \eqn{x_matrix'x_matrix}. This is invariant across
+Gibbs draws, so it is computed once instead of on every call.}
 }
 \value{
 \eqn{\hat{\Theta}_j} with dimensions \eqn{(k \times (1 + n_j))}.

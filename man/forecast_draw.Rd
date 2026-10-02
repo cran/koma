@@ -14,7 +14,7 @@ forecast_draw(
   freq,
   forecast_dates,
   restrictions,
-  state,
+  phi_positions,
   conditional_innov_method = "projection",
   central_tendency = NULL
 )
@@ -38,9 +38,8 @@ variables.}
 
 \item{restrictions}{List of model constraints. Default is empty.}
 
-\item{state}{An environment used to share mutable state between function
-calls, particularly for issuing warnings only once during the forecasting
-process.}
+\item{phi_positions}{Positions of the lagged endogenous regressors, as
+returned by \code{\link[=find_phi_positions]{find_phi_positions()}}.}
 }
 \description{
 This function computes a forecast for a single draw of the parameter

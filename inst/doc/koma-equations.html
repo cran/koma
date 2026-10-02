@@ -430,11 +430,14 @@ with no variable name:</p>
 <span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="co"># Prior on a lagged term</span></span>
 <span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>consumption <span class="sc">~</span> gdp <span class="sc">+</span> {<span class="fl">0.9</span>, <span class="dv">10</span>} <span class="fu">consumption.L</span>(<span class="dv">1</span>)</span>
 <span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># Prior on an endogenous regressor</span></span>
-<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>consumption <span class="sc">~</span> {<span class="fl">0.2</span>, <span class="fl">0.5</span>} service <span class="sc">+</span> gdp</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="co"># Same prior on several lags (applies to consumption.L(1), .L(2) and .L(4))</span></span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>consumption <span class="sc">~</span> gdp <span class="sc">+</span> {<span class="dv">0</span>, <span class="dv">1000</span>} <span class="fu">consumption.L</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">2</span>, <span class="dv">4</span>)</span>
 <span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a></span>
-<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co"># Error-term prior: {df, scale}</span></span>
-<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>consumption <span class="sc">~</span> gdp <span class="sc">+</span> <span class="fu">consumption.L</span>(<span class="dv">1</span>) <span class="sc">+</span> {<span class="dv">3</span>, <span class="fl">0.001</span>}</span></code></pre></div>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a><span class="co"># Prior on an endogenous regressor</span></span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>consumption <span class="sc">~</span> {<span class="fl">0.2</span>, <span class="fl">0.5</span>} service <span class="sc">+</span> gdp</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a><span class="co"># Error-term prior: {df, scale}</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>consumption <span class="sc">~</span> gdp <span class="sc">+</span> <span class="fu">consumption.L</span>(<span class="dv">1</span>) <span class="sc">+</span> {<span class="dv">3</span>, <span class="fl">0.001</span>}</span></code></pre></div>
 <p>Rules:</p>
 <ul>
 <li>Priors are only supported in stochastic equations.</li>
@@ -442,6 +445,9 @@ with no variable name:</p>
 <code>{mean, variance} variable</code>.</li>
 <li>The error-term prior has the form <code>{df, scale}</code> and
 appears without a variable name.</li>
+<li>A prior in front of lag shorthand (<code>x.L(1:3)</code>,
+<code>x.L(1, 3)</code>, <code>lag(x, 1:3)</code>) applies to every lag
+it expands to.</li>
 <li>The dependent variable cannot have a prior.</li>
 <li>The error-term prior must be the last prior in the equation.</li>
 </ul>
@@ -453,6 +459,43 @@ for a single equation by appending <code>[tau = value]</code> after its
 equation. If the acceptance rate falls outside 30%-60 %, a warning is
 emitted.</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="st">&quot;consumption ~ constant + gdp + consumption.L(1) + consumption.L(2) [tau = 1.2]&quot;</span></span></code></pre></div>
+</div>
+<div id="dummy-variables" class="section level2">
+<h2>7. Dummy Variables</h2>
+<p>Dummy variables can be written as <code>dummies(prefix, spec)</code>
+instead of spelling out every term. <code>spec</code> follows the same
+syntax as lag ranges (a single index, a <code>lower:upper</code> range,
+or a comma-separated mix).</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Shorthand:</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>consp <span class="sc">~</span> ydispbr <span class="sc">+</span> <span class="fu">consp.L</span>(<span class="dv">1</span>) <span class="sc">+</span> <span class="fu">dummies</span>(covid, <span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="co"># Equivalent to:</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>consp <span class="sc">~</span> ydispbr <span class="sc">+</span> <span class="fu">consp.L</span>(<span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>  covid_1 <span class="sc">+</span> covid_2 <span class="sc">+</span> covid_3 <span class="sc">+</span> covid_4 <span class="sc">+</span> covid_5 <span class="sc">+</span> covid_6 <span class="sc">+</span> covid_7 <span class="sc">+</span> covid_8</span></code></pre></div>
+<p><code>dummies()</code> only expands the <em>equation string</em> - it
+does not create any data. It is expanded before validation, so the
+expanded names are treated exactly like any hand-typed variable, which
+means the usual three steps for an exogenous variable still apply:</p>
+<p><strong>1. The data has to exist.</strong> Each expanded name
+(<code>covid_1</code>, <code>covid_2</code>, …) must be a real 0/1
+series in the <code>ts_data</code> passed to <code>estimate()</code>.
+<code>koma</code> does not generate this from a period specification -
+you build it like any other series, e.g. as a shock in a single period
+per dummy:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>covid_periods <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">2020.25</span>, <span class="fl">2020.5</span>, <span class="fl">2020.75</span>, <span class="dv">2021</span>, <span class="fl">2021.25</span>, <span class="fl">2021.5</span>, <span class="fl">2021.75</span>, <span class="dv">2022</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_along</span>(covid_periods)) {</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>  dummy <span class="ot">&lt;-</span> stats<span class="sc">::</span><span class="fu">ts</span>(<span class="dv">0</span>, <span class="at">start =</span> stats<span class="sc">::</span><span class="fu">start</span>(ts_data<span class="sc">$</span>consp), <span class="at">end =</span> stats<span class="sc">::</span><span class="fu">end</span>(ts_data<span class="sc">$</span>consp),</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>    <span class="at">frequency =</span> stats<span class="sc">::</span><span class="fu">frequency</span>(ts_data<span class="sc">$</span>consp))</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>  <span class="fu">window</span>(dummy, <span class="at">start =</span> covid_periods[i], <span class="at">end =</span> covid_periods[i]) <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb12-6"><a href="#cb12-6" tabindex="-1"></a>  ts_data[[<span class="fu">paste0</span>(<span class="st">&quot;covid_&quot;</span>, i)]] <span class="ot">&lt;-</span> <span class="fu">as_ets</span>(dummy, <span class="at">series_type =</span> <span class="st">&quot;rate&quot;</span>, <span class="at">method =</span> <span class="st">&quot;none&quot;</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>}</span></code></pre></div>
+<p><strong>2. It must be declared as exogenous</strong>, same as for any
+other regressor:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>exogenous_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;ydispbr&quot;</span>, <span class="fu">paste0</span>(<span class="st">&quot;covid_&quot;</span>, <span class="dv">1</span><span class="sc">:</span><span class="dv">8</span>))</span></code></pre></div>
+<p><strong>3. If forecasting</strong>, the dummy series must also extend
+through the forecast horizon in <code>ts_data</code> (typically as 0,
+since a one-off shock dummy shouldn’t recur) - <code>forecast()</code>
+errors if an exogenous series doesn’t reach the forecast end date.</p>
 </div>
 </div>
 

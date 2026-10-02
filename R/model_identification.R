@@ -84,11 +84,19 @@ model_identification <- function(character_gamma_matrix,
   number_of_exogenous <- number_of_exogenous - 1
   number_of_identities <- length(identity_weights)
 
+  identity_positions <- which(
+    colnames(character_beta_matrix) %in% names(identity_weights)
+  )
+  stochastic_positions <- setdiff(
+    seq_len(number_of_endogenous), identity_positions
+  )
+
   # Check identification all stochastic equations
   rank_all <- list()
   order_all <- list()
 
-  for (j in seq(1, (number_of_endogenous - number_of_identities))) {
+  for (i in seq_along(stochastic_positions)) {
+    j <- stochastic_positions[i]
     # Sort Gamma and B such that Gamma = [1,-gamma_j,0] and B=[beta_j 0]
     gammas <- rbind(
       gamma_matrix[gamma_matrix[, j] == 1, ],
@@ -102,11 +110,11 @@ model_identification <- function(character_gamma_matrix,
 
     rr <- rbind(gammas, betas)
     r <- rr[rr[, j] == 0, -j, drop = FALSE]
-    rank_all[[j]] <- list(
+    rank_all[[i]] <- list(
       "Fullfilled" = qr(r)$rank == (number_of_endogenous - 1),
       "Rank" = qr(r)$rank
     )
-    order_all[[j]] <- list(
+    order_all[[i]] <- list(
       "Fullfilled" = dim(r)[2] <= dim(r)[1],
       "# included endogenous" = dim(r)[2],
       "# excluded exogenous" = dim(r)[1]
@@ -140,6 +148,69 @@ model_identification <- function(character_gamma_matrix,
   check_condition(rank_all, "rank", call = call)
 
   return(TRUE)
+}
+
+#' Validate that x_matrix has full column rank
+#'
+#' Detects exact linear dependence between columns of `x_matrix`, the
+#' \eqn{(T \times k)} matrix of observations on exogenous and predetermined
+#' variables used during estimation. Such dependence can arise, for example,
+#' when a lagged identity variable (e.g. `gdp.L(1)`, where
+#' `gdp == 0.5*manufacturing + 0.5*service`) is used alongside lags of its own
+#' identity components elsewhere in the system: since an identity holds
+#' exactly (no error term), its lag is then an exact linear combination of
+#' other columns already in `x_matrix`. Left uncaught, this surfaces later as
+#' an opaque `"computationally singular"` error from `solve()` deep inside
+#' the Gibbs sampler.
+#'
+#' @param x_matrix A \eqn{(T \times k)} matrix \eqn{X} of observations on
+#' \eqn{k} exogenous variables.
+#' @param tol Numerical tolerance for detecting rank deficiency, passed to
+#' [base::qr()] and used (relative to the largest singular value) to
+#' identify the columns responsible.
+#' @param call The environment from which the error is called.
+#' @keywords internal
+validate_full_rank <- function(x_matrix, tol = 1e-7, call = rlang::caller_env()) {
+  n <- ncol(x_matrix)
+  rank <- qr(x_matrix, tol = tol)$rank
+
+  if (rank == n) {
+    return(invisible(TRUE))
+  }
+
+  dependent <- find_dependent_columns(x_matrix, tol = tol)
+
+  cli::cli_abort(
+    c(
+      "!" = "x_matrix is not full column rank ({rank} of {n} columns).",
+      "x" = "The following variables are exactly linearly dependent: {.val {dependent}}.",
+      "i" = "This often happens when a lagged identity variable (e.g. {.code x.L(1)}) is
+      used alongside lags of its own identity components elsewhere in the system.",
+      ">" = "Remove one of the dependent variables, or avoid lagging both the identity
+      and its components in the same system."
+    ),
+    call = call
+  )
+}
+
+#' Identify columns involved in an exact linear dependency
+#'
+#' Uses the singular value decomposition of `x_matrix` to find near-zero
+#' singular values (rank-deficient directions) and reports the columns with
+#' non-negligible loadings on the corresponding right singular vectors, i.e.
+#' the columns actually involved in the dependency.
+#'
+#' @inheritParams validate_full_rank
+#' @return A character vector of column names involved in at least one exact
+#' linear dependency.
+#' @keywords internal
+find_dependent_columns <- function(x_matrix, tol = 1e-7) {
+  s <- svd(as.matrix(x_matrix))
+  null_idx <- which(s$d < tol * max(s$d))
+  loadings <- abs(s$v[, null_idx, drop = FALSE])
+  involved <- rowSums(loadings > tol) > 0
+
+  colnames(x_matrix)[involved]
 }
 
 #' Vectorize Gamma Matrix

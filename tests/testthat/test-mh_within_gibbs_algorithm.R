@@ -112,6 +112,39 @@ exogenous variables in the equation", {
   expect_identical(result$gamma_jw, expected_gamma)
 })
 
+test_that("draw_parameters_j keeps every nstore-th draw after burn-in", {
+  y_matrix <- simulated_data$y_matrix
+  x_matrix <- simulated_data$x_matrix
+  character_gamma_matrix <- simulated_data$character_gamma_matrix
+  character_beta_matrix <- simulated_data$character_beta_matrix
+  jx <- 1
+
+  run_sampler <- function(nstore) {
+    withr::with_seed(
+      7,
+      draw_parameters_j(
+        y_matrix,
+        x_matrix,
+        character_gamma_matrix,
+        character_beta_matrix,
+        jx,
+        set_gibbs_spec(ndraws = 25, burnin_ratio = 0.2, nstore = nstore)
+      )
+    )
+  }
+
+  unthinned <- run_sampler(1)
+  thinned <- run_sampler(3)
+
+  # burnin = 5, nsave = floor(20 / 3) = 6
+  expect_length(unthinned$beta_jw, 20)
+  expect_length(thinned$beta_jw, 6)
+  expect_length(thinned$gamma_jw, 6)
+  expect_length(thinned$omega_tilde_jw, 6)
+  expect_identical(thinned$beta_jw, unthinned$beta_jw[seq(3, 18, by = 3)])
+  expect_identical(thinned$gamma_jw, unthinned$gamma_jw[seq(3, 18, by = 3)])
+})
+
 # Test Initialize Sampler
 test_that("initialize_sampler correctly maximizes the target target function
 when there is one endogenous variable", {
@@ -126,7 +159,9 @@ when there is one endogenous variable", {
     x_matrix,
     character_gamma_matrix,
     character_beta_matrix,
-    jx
+    jx,
+    crossprod(x_matrix),
+    xbtxb_for(x_matrix, character_beta_matrix, jx)
   )
   expect_equal(
     result_with_endogenous$gamma_parameters_j,
@@ -179,7 +214,9 @@ the one endogenous variable case", {
     jx,
     gamma_parameters_1,
     tau,
-    cholesky_of_inverse_hessian
+    cholesky_of_inverse_hessian,
+    crossprod(x_matrix),
+    xbtxb_for(x_matrix, character_beta_matrix, jx)
   )
   expect_equal(
     new_gamma_parameters_1,
@@ -208,7 +245,9 @@ the one endogenous variable case", {
     jx,
     gamma_parameters_1,
     tau,
-    cholesky_of_inverse_hessian
+    cholesky_of_inverse_hessian,
+    crossprod(x_matrix),
+    xbtxb_for(x_matrix, character_beta_matrix, jx)
   )
   expect_equal(
     new_gamma_parameters_1,
@@ -253,7 +292,9 @@ test_that("draw_omega_j correctly returns the Omega", {
     7,
     draw_omega_j(
       y_matrix, x_matrix, character_gamma_matrix,
-      character_beta_matrix, jx, gamma_parameters_1
+      character_beta_matrix, jx, gamma_parameters_1,
+      crossprod(x_matrix),
+      xbtxb_for(x_matrix, character_beta_matrix, jx)
     )
   )
 
@@ -288,7 +329,7 @@ the one endogenous variables case", {
     7,
     draw_theta_j(
       y_matrix, x_matrix, character_gamma_matrix, character_beta_matrix,
-      jx, gamma_parameters_j, omega_tilde_jw
+      jx, gamma_parameters_j, omega_tilde_jw, crossprod(x_matrix)
     )
   )
 
@@ -327,7 +368,7 @@ the no endogenous variables case", {
     7,
     draw_theta_j(
       y_matrix, x_matrix, character_gamma_matrix, character_beta_matrix,
-      jx, gamma_parameters_j, omega_tilde_jw
+      jx, gamma_parameters_j, omega_tilde_jw, crossprod(x_matrix)
     )
   )
 
@@ -360,7 +401,9 @@ test_that("target_j correctly computes the target function
     character_gamma_matrix,
     character_beta_matrix,
     jx,
-    parameters
+    parameters,
+    crossprod(x_matrix),
+    xbtxb_for(x_matrix, character_beta_matrix, jx)
   )
 
   # Check that the result is a single double value
@@ -378,7 +421,9 @@ test_that("target_j correctly computes the target function
     character_gamma_matrix,
     character_beta_matrix,
     jx,
-    new_parameters
+    new_parameters,
+    crossprod(x_matrix),
+    xbtxb_for(x_matrix, character_beta_matrix, jx)
   )
 
   # Check that the result has changed
@@ -393,8 +438,11 @@ test_that("target_j correctly computes the target function
       character_gamma_matrix,
       character_beta_matrix,
       jx,
-      parameters
-    )
+      parameters,
+      crossprod(x_matrix),
+      xbtxb_for(x_matrix, character_beta_matrix, jx)
+    ),
+    "number of gamma parameters"
   )
 })
 

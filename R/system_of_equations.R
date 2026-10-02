@@ -12,6 +12,12 @@
 #' - Identity equations use `==` (e.g. `y == 0.5*x1 + 0.5*x2`).
 #' - Lagged variables are denoted by `X.L(x)` for variable `X` and lag `L(x)`
 #'  (e.g. `.L(1)`, `.L(2)`).
+#' - Dummy variables can be written as
+#' `dummies(prefix, spec)`, e.g. `dummies(covid, 1:8)` expands to
+#' `covid_1+covid_2+...+covid_8`. `spec` follows the same syntax as lag
+#' ranges (a single index, a `lower:upper` range, or a comma-separated mix).
+#' Expansion happens before validation, so every expanded name must still be
+#' declared in `exogenous_variables`, just like a hand-typed variable.
 #' - Intercept are included by default, you can also explicitly specify the
 #' constant by adding `constant` to the equation (e.g. `y ~ constant + x1`).
 #' To exclude the intercept, add `+0` or `-1` to the equation
@@ -81,6 +87,20 @@ system_of_equations <- function(equations = vector(),
     ))
   }
 
+  # Shorthand expansion passes: each rewrites equation-string sugar into
+  # syntax the rest of the pipeline already understands, before priors,
+  # settings, or validation ever see the equation.
+  equations <- expand_dummies(equations)
+
+  # Validate priors before parse_equation() strips the "{...}" syntax out of
+  # the equation. validate_priors() needs to see the raw prior text to catch
+  # a malformed one (e.g. "{0;1000}" using ";" instead of ","); once stripped
+  # there is nothing left to validate, and a malformed prior would otherwise
+  # silently coerce to NA in extract_priors().
+  for (equation in equations) {
+    validate_priors(equation)
+  }
+
   priors <- lapply(equations, extract_priors)
   equation_settings <- lapply(equations, extract_settings)
   equations <- sapply(equations, parse_equation, USE.NAMES = FALSE)
@@ -88,7 +108,6 @@ system_of_equations <- function(equations = vector(),
   # Validate variable names per single equation
   for (equation in equations) {
     validate_equation(equation)
-    validate_priors(equation)
   }
 
   validate_completeness(equations, exogenous_variables)
@@ -105,6 +124,7 @@ new_system_of_equations <- function(equations, exogenous_variables, priors, equa
   stopifnot(is.character(equations))
 
   endogenous_variables <- get_endogenous_variables(equations)
+  validate_unique_endogenous_variables(equations, endogenous_variables)
 
   out <- parse_lags(equations)
   predetermined_variables <- out$variables
@@ -227,8 +247,21 @@ parse_equation <- function(equation) {
   }
 
   parts <- strsplit(equation, operator)[[1]]
-  lhs <- trimws(parts[1])
-  rhs <- trimws(parts[2])
+  lhs <- if (length(parts) >= 1) trimws(parts[1]) else ""
+  rhs <- if (length(parts) >= 2) trimws(parts[2]) else ""
+
+  # A trailing operator with nothing after it (e.g. "y ~") leaves `parts`
+  # one element short, so `rhs` would otherwise silently become NA and
+  # propagate as the literal text "NA" through the rest of the pipeline --
+  # surfacing much later as a baffling "Undeclared exogenous variable: NA"
+  # instead of pointing at the actual problem.
+  if (!nzchar(lhs) || !nzchar(rhs)) {
+    side <- if (!nzchar(lhs)) "left-hand" else "right-hand"
+    cli::cli_abort(c(
+      "!" = "Equation has no {side} side: {.code {equation}}.",
+      "i" = "Expected something like {.code y{operator}x1+x2}."
+    ))
+  }
 
   clean_rhs <- function(rhs, pat) {
     # Remove occurrences of pattern (e.g., '+1', '+0', or '-1')
@@ -243,8 +276,11 @@ parse_equation <- function(equation) {
   if (operator == "~") {
     # Strip all priors to prevent false 0 matches inside them
     rhs <- gsub("\\{[^}]*\\}", "", rhs)
-    # Strip all equation specific settings
-    rhs <- gsub("\\[.*?\\]$", "", rhs)
+    # Strip trailing equation specific settings, e.g. "[tau=1.2]".
+    # Requires a "=" inside the brackets so a non-setting bracketed term
+    # (e.g. a typo'd "var[1:3]") is left alone and fails validation instead
+    # of being silently discarded.
+    rhs <- gsub("\\[[^][]*=[^][]*\\]$", "", rhs)
 
     # Remove explicit zero (0) to drop the constant
     if (grepl("(?<!\\.L\\()\\b0\\b(?!\\))", rhs, perl = TRUE)) {
@@ -341,6 +377,45 @@ extract_endogenous_variables <- function(equations) {
   endogenous_variables
 }
 
+#' Verify every theta placeholder found in the gamma/beta matrices resolves
+#' back to a cell in one of those same matrices.
+#'
+#' Under normal operation this is a tautology: `character_weights` is
+#' extracted directly from `character_gamma_matrix`/`character_beta_matrix`
+#' in the first place, so every value is guaranteed to be found again. This
+#' exists as a defensive invariant check in case a future change to
+#' `construct_gamma_matrix()`/`construct_beta_matrix()` ever desynchronizes
+#' the two -- if it ever fires, it indicates an internal bug rather than a
+#' problem with the user's equations, since `validate_completeness()` has
+#' already run by this point in the pipeline and ruled out undeclared or
+#' mismatched variables.
+#'
+#' @param character_weights Character vector of theta placeholder strings
+#' (e.g. `"theta6_4"`), as extracted from the gamma/beta matrices.
+#' @param character_gamma_matrix,character_beta_matrix The character
+#' matrices `character_weights` was extracted from.
+#' @keywords internal
+validate_thetas_exist <- function(character_weights, character_gamma_matrix,
+                                  character_beta_matrix) {
+  found <- vapply(character_weights, function(x) {
+    any(grepl(x, character_gamma_matrix, fixed = TRUE)) ||
+      any(grepl(x, character_beta_matrix, fixed = TRUE))
+  }, logical(1))
+
+  if (!all(found)) {
+    missing <- unique(character_weights[!found])
+    cli::cli_abort(c(
+      "!" = "Internal error while extracting identity weights.",
+      "x" = "Expected to find {.val {missing}} in the gamma/beta matrices,
+      but {cli::qty(length(missing))} {?it was/they were} not.",
+      "i" = "This points to a bug in koma itself rather than a problem with
+      your equations; please report it."
+    ))
+  }
+
+  invisible(TRUE)
+}
+
 #' Extract identities from equations
 #'
 #' This function filters out equations containing 'epsilon', then extracts
@@ -406,25 +481,9 @@ get_identities <- function(equations, character_gamma_matrix,
     stats::setNames(weights$character_weight, weights$component)
 
 
-  # Check if the thetas exist in character gamma or beta matrices
-  check_existence <- function(character_weights, character_gamma_matrix,
-                              character_beta_matrix) {
-    all(sapply(character_weights, function(x) {
-      any(grepl(x, character_gamma_matrix)) ||
-        any(grepl(x, character_beta_matrix))
-    }))
-  }
-
-  thetas_exist <- check_existence(
+  validate_thetas_exist(
     weights$character_weight, character_gamma_matrix, character_beta_matrix
   )
-
-  if (!thetas_exist) {
-    # TODO: add more specific error message
-    cli::cli_abort(
-      "Not all thetas in weights list exist also in character matrices."
-    )
-  }
 
   out <- list()
 
@@ -751,19 +810,46 @@ extract_lagged_vars <- function(equations, pattern) {
   list(variables = unique(all_vars), equations = all_equations)
 }
 
-parse_lag_spec <- function(lag_spec) {
-  parts <- strsplit(lag_spec, ",")[[1]]
-  lags <- c()
+#' Parse an Index Specification
+#'
+#' @description
+#' Parses a comma-separated specification of integer indices, where each
+#' component is either a single integer or a `lower:upper` range, into the
+#' full integer vector it denotes. Shared by lag notation (`.L()`/`lag()`)
+#' and `dummies()` indexed-variable expansion, since both use the same
+#' "single value or range, comma-separated" spec syntax.
+#'
+#' @param spec A single string, e.g. `"1"`, `"1:4"`, or `"1:3,5"`.
+#'
+#' @return An integer vector of unique indices, e.g. `c(1L, 2L, 3L, 5L)`.
+#' @keywords internal
+parse_index_spec <- function(spec) {
+  parts <- strsplit(spec, ",")[[1]]
+  indices <- c()
   for (part in parts) {
     part <- trimws(part)
     if (grepl(":", part)) {
-      bounds <- as.integer(strsplit(part, ":")[[1]])
-      lags <- c(lags, seq(bounds[1], bounds[2]))
+      bound_strs <- strsplit(part, ":")[[1]]
+      bounds <- suppressWarnings(as.integer(bound_strs))
+      if (length(bound_strs) != 2 || anyNA(bounds)) {
+        cli::cli_abort(c(
+          "!" = "Invalid index specification: {.code {part}}.",
+          "i" = "A range must be exactly {.code lower:upper}, e.g. {.code 1:4}."
+        ))
+      }
+      indices <- c(indices, seq(bounds[1], bounds[2]))
     } else {
-      lags <- c(lags, as.integer(part))
+      idx <- suppressWarnings(as.integer(part))
+      if (is.na(idx)) {
+        cli::cli_abort(c(
+          "!" = "Invalid index specification: {.code {part}}.",
+          "i" = "Expected an integer or a {.code lower:upper} range."
+        ))
+      }
+      indices <- c(indices, idx)
     }
   }
-  unique(lags)
+  unique(indices)
 }
 
 extract_from_matches <- function(equation, pattern) {
@@ -779,7 +865,7 @@ extract_from_matches <- function(equation, pattern) {
 
     var_name <- parts[pattern$var_pos + 1]
     lag_spec <- parts[pattern$lag_spec_pos + 1]
-    lags <- parse_lag_spec(lag_spec)
+    lags <- parse_index_spec(lag_spec)
 
     vars <- paste0(var_name, ".L(", lags, ")")
     new_str <- paste(vars, collapse = "+")
@@ -795,10 +881,85 @@ extract_from_matches <- function(equation, pattern) {
   list(variables = all_vars, equation = equation)
 }
 
+#' Expand Indexed Dummy-Variable Shorthand
+#'
+#' @description
+#' Rewrites `dummies(prefix, spec)` calls into an additive series of plain
+#' variable names `prefix_1+prefix_2+...`, where the indices come from
+#' `spec` (parsed by `parse_index_spec()`, the same "single value or range,
+#' comma-separated" grammar used by lag notation). For example,
+#' `dummies(covid, 1:8)` becomes `covid_1+covid_2+...+covid_8`.
+#'
+#' This runs before any other equation processing (priors, settings,
+#' validation), so the expanded terms are indistinguishable from terms the
+#' user typed by hand for every downstream step - including
+#' `validate_completeness()`, which will require each expanded name (e.g.
+#' `covid_1`) to be declared in `exogenous_variables` like any other
+#' regressor. Unlike lagged variables, there is no separate "base variable"
+#' backing a dummy family to validate instead, so no such exemption exists.
+#'
+#' Any `dummies(...)` call is matched loosely first (so a malformed one is
+#' actually caught here, rather than left untouched to fail later as an
+#' unhelpful generic "invalid variable"), then the prefix and spec are
+#' validated strictly, raising `cli::cli_abort()` with the offending call
+#' shown verbatim if either is invalid.
+#'
+#' @param equations A character vector of equation strings.
+#'
+#' @return A character vector of equations with every `dummies(...)` call
+#' expanded.
+#' @keywords internal
+expand_dummies <- function(equations) {
+  loose_pattern <- "dummies\\(([^,()]*),([^()]*)\\)"
+  prefix_pattern <- "^[a-zA-Z][a-zA-Z0-9_]*$"
+  spec_pattern <- "^[0-9:,]+$"
+
+  vapply(equations, function(equation) {
+    matches <- gregexpr(loose_pattern, equation, perl = TRUE)
+    raw_matches <- regmatches(equation, matches)[[1]]
+
+    for (expr in raw_matches) {
+      m <- regexec(loose_pattern, expr, perl = TRUE)
+      parts <- regmatches(expr, m)[[1]]
+      prefix <- trimws(parts[2])
+      spec <- trimws(gsub(" ", "", parts[3]))
+
+      indices <- if (grepl(prefix_pattern, prefix) && grepl(spec_pattern, spec)) {
+        tryCatch(parse_index_spec(spec), error = function(e) integer(0))
+      } else {
+        integer(0)
+      }
+
+      if (length(indices) == 0 || anyNA(indices)) {
+        cli::cli_abort(c(
+          "!" = "Invalid {.code dummies()} call: {.code {expr}}.",
+          "i" = "Expected {.code dummies(prefix, spec)}, where {.arg prefix} is
+          a variable name and {.arg spec} is a comma-separated list of
+          integers or {.code lower:upper} ranges, e.g.
+          {.code dummies(covid, 1:8)}."
+        ))
+      }
+
+      replacement <- paste(paste0(prefix, "_", indices), collapse = "+")
+      equation <- sub(expr, replacement, equation, fixed = TRUE)
+    }
+
+    equation
+  }, character(1), USE.NAMES = FALSE)
+}
+
 extract_priors <- function(equation) {
   # only extract priors if the equation is stochastic
   if (grepl("~", equation)) {
-    pattern <- "\\{([^}]+)\\}((?:[A-Za-z_][A-Za-z_0-9]*(?:\\.L\\([0-9:]+\\))?)|1)?"
+    # The term following a prior may use lag shorthand, either
+    # `var.L(spec)` or `lag(var, spec)`, where spec is anything
+    # parse_index_spec() accepts (e.g. "1", "1:3", "1,3,5").
+    pattern <- paste0(
+      "\\{([^}]+)\\}(",
+      "lag\\([A-Za-z0-9_.]+,[^)]+\\)|",
+      "[A-Za-z_][A-Za-z_0-9]*(?:\\.L\\([^)]+\\))?|",
+      "1)?"
+    )
     matches <- regmatches(equation, gregexpr(pattern, equation, perl = TRUE))[[1]]
 
     prior_vals <- sub(pattern, "\\1", matches, perl = TRUE)
@@ -815,7 +976,13 @@ extract_priors <- function(equation) {
     if (length(priors) == 0) {
       return(list())
     }
-    names(priors) <- var_names
+
+    # A prior in front of lag shorthand applies to every lag it expands to,
+    # e.g. "{0,1000}x.L(1,3)" sets the same prior on x.L(1) and x.L(3).
+    expanded_names <- lapply(var_names, expand_lag_term)
+    priors <- rep(priors, lengths(expanded_names))
+    matches <- rep(matches, lengths(expanded_names))
+    names(priors) <- unlist(expanded_names)
 
     # Ensure the epsilon (error term) prior ("epsilon") is the last element.
     # If a error term prior exists but is not last, remove it and warn.
@@ -842,15 +1009,83 @@ extract_priors <- function(equation) {
   }
 }
 
+# Expand a single term in lag shorthand (`var.L(spec)` or `lag(var, spec)`)
+# into its standardized `var.L(k)` names; any other term is returned as is.
+expand_lag_term <- function(term) {
+  lag_patterns <- c(
+    "^([A-Za-z0-9_]+)\\.L\\(([^)]+)\\)$",
+    "^lag\\(([A-Za-z0-9_.]+),([^)]+)\\)$"
+  )
+  for (lag_pattern in lag_patterns) {
+    parts <- regmatches(term, regexec(lag_pattern, term, perl = TRUE))[[1]]
+    if (length(parts) == 3) {
+      return(paste0(parts[2], ".L(", parse_index_spec(parts[3]), ")"))
+    }
+  }
+  term
+}
+
+# Functions/operators allowed inside an equation's "[key=val,...]" settings
+# block. Deliberately minimal: covers every form actually used in the
+# vignette and test suite (numbers, strings, c(), list(), basic arithmetic)
+# and nothing that provides file, process, environment, or reflection
+# access.
+settings_allowed_fns <- c(
+  "list", "c",
+  "+", "-", "*", "/", "^", "%%", "%/%", "(",
+  "!", "&&", "||", "&", "|",
+  "==", "!=", "<", "<=", ">", ">="
+)
+
+# Walk a parsed settings expression and abort if it calls any function not
+# on `settings_allowed_fns`. Run before eval() as the primary defense; the
+# minimal evaluation environment in `settings_eval_env()` is a second layer
+# in case a call somehow evades this walk.
+validate_settings_expr <- function(expr, raw) {
+  if (is.call(expr)) {
+    fn <- expr[[1]]
+    fn_name <- if (is.symbol(fn)) as.character(fn) else NA_character_
+    if (is.na(fn_name) || !(fn_name %in% settings_allowed_fns)) {
+      what <- if (is.na(fn_name)) "an unrecognized expression" else paste0("the function `", fn_name, "`")
+      cli::cli_abort(c(
+        "!" = "Equation-specific settings {.code [{raw}]} use {what}, which is
+        not allowed.",
+        "i" = "Only literal values, {.code c()}, {.code list()}, and basic
+        arithmetic/comparison operators are allowed, e.g.
+        {.code [tau=0.1, ndraws=100]}."
+      ))
+    }
+    for (arg in as.list(expr)[-1]) {
+      validate_settings_expr(arg, raw)
+    }
+  }
+  invisible(TRUE)
+}
+
+# A minimal evaluation environment exposing only `settings_allowed_fns`
+# (pulled from base), with no parent environment to fall back to -- so any
+# symbol or function this misses on `validate_settings_expr()`'s allowlist
+# fails with an ordinary "not found" error instead of resolving to a real,
+# potentially dangerous, base function.
+settings_eval_env <- function() {
+  env <- new.env(parent = emptyenv())
+  for (fn_name in settings_allowed_fns) {
+    assign(fn_name, get(fn_name, envir = baseenv()), envir = env)
+  }
+  env
+}
+
 extract_settings <- function(equation) {
   equation <- trimws(equation)
-  # pull out “[key=val,…]” if present
-  match <- regexec("\\[(.*?)\\]", equation)
+  # pull out "[key=val,...]" if present. Requires a "=" inside the brackets
+  # so a non-setting bracketed term isn't misread as settings.
+  match <- regexec("\\[([^][]*=[^][]*)\\]", equation)
   content <- regmatches(equation, match)[[1]][2]
 
   if (!is.na(content) && nzchar(content)) {
     expr <- parse(text = paste0("list(", content, ")"))[[1]]
-    out <- eval(expr, envir = baseenv())
+    validate_settings_expr(expr, content)
+    out <- eval(expr, envir = settings_eval_env())
   } else {
     out <- list()
   }

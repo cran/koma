@@ -20,9 +20,18 @@ forecast_sem <- function(sys_eq, estimates,
                          restrictions, y_matrix, forecast_x_matrix, horizon,
                          freq, forecast_dates, approximate, probs,
                          conditional_innov_method = "projection") {
-  state <- new.env()
-  state$warning_issued <- FALSE
-  state$warning_issued_restrictions <- FALSE
+  # The same for every draw, so shorten (and warn) once in the main process
+  # instead of per draw, where multisession workers cannot share the state.
+  horizon <- shorten_forecast_horizon(horizon, forecast_x_matrix, forecast_dates)
+
+  # Validate against the possibly shortened horizon, so restrictions beyond it
+  # fail once here instead of in every draw.
+  restrictions <- validate_restrictions(
+    restrictions, sys_eq$endogenous_variables, horizon
+  )
+
+  # Depends only on the system of equations, so find it once for all draws.
+  phi_positions <- find_phi_positions(sys_eq)
 
   out <- list()
 
@@ -32,13 +41,15 @@ forecast_sem <- function(sys_eq, estimates,
     out$mean <- forecast_draw(
       sys_eq, estimates, NULL,
       y_matrix, forecast_x_matrix, horizon, freq, forecast_dates, restrictions,
-      state, conditional_innov_method = conditional_innov_method,
+      phi_positions,
+      conditional_innov_method = conditional_innov_method,
       central_tendency = "mean"
     )
     out$median <- forecast_draw(
       sys_eq, estimates, NULL,
       y_matrix, forecast_x_matrix, horizon, freq, forecast_dates, restrictions,
-      state, conditional_innov_method = conditional_innov_method,
+      phi_positions,
+      conditional_innov_method = conditional_innov_method,
       central_tendency = "median"
     )
     out$quantiles <- NULL
@@ -54,14 +65,37 @@ forecast_sem <- function(sys_eq, estimates,
     draw_jx <- NULL
     nsave <- length(estimates[[1]]$beta_jw)
 
+    # Evaluate lazy arguments before the closure is shipped to future workers.
+    # An unevaluated promise may refer to the caller's global environment,
+    # which is not exported to multisession workers.
+    force(sys_eq)
+    force(restrictions)
+    force(y_matrix)
+    force(forecast_x_matrix)
+    force(horizon)
+    force(freq)
+    force(forecast_dates)
+    force(conditional_innov_method)
+
     p <- progressr::progressor(steps = nsave)
 
+    # Warnings and errors are collected per draw and reported once below,
+    # instead of being signalled for every draw on the workers.
     safe_draw_forecasts <- purrr::safely(function(draw_jx) {
-      forecast_draw(
-        sys_eq, estimates, draw_jx,
-        y_matrix, forecast_x_matrix, horizon, freq, forecast_dates,
-        restrictions, state, conditional_innov_method = conditional_innov_method
+      warnings <- character(0)
+      result <- withCallingHandlers(
+        forecast_draw(
+          sys_eq, estimates, draw_jx,
+          y_matrix, forecast_x_matrix, horizon, freq, forecast_dates,
+          restrictions, phi_positions,
+          conditional_innov_method = conditional_innov_method
+        ),
+        warning = function(w) {
+          warnings <<- c(warnings, conditionMessage(w))
+          invokeRestart("muffleWarning")
+        }
       )
+      list(result = result, warnings = warnings)
     })
 
     suppressPackageStartupMessages(
@@ -82,31 +116,36 @@ forecast_sem <- function(sys_eq, estimates,
       }
     )
 
-    lapply(names(forecasts), function(x) {
-      if (!is.null(forecasts[[x]]$error)) {
-        cli::cli_warn(c(
-          "i" = paste(
-            "Error in forecast:", x
-          ),
-          call = forecasts[[x]]$error
-        ))
-      }
-    })
+    # x$error is the error of a failed draw, x$result$warnings the warnings
+    # and x$result$result the forecast.
+    draw_warnings <- unlist(lapply(forecasts, function(x) x$result$warnings))
+    draw_errors <- Filter(Negate(is.null), lapply(forecasts, `[[`, "error"))
+    # The first error is chained as parent, so rlang::last_trace() shows
+    # where the draw failed.
+    first_error <- if (length(draw_errors) > 0) draw_errors[[1]]
+    draw_errors <- vapply(draw_errors, conditionMessage, character(1))
+    forecasts <- lapply(forecasts, function(x) x$result$result)
 
-    forecasts <- purrr::map(forecasts, "result")
+    if (length(draw_warnings) > 0) {
+      cli::cli_warn(c(
+        "!" = "Forecast draws raised warnings:",
+        summarise_draw_conditions(draw_warnings, nsave)
+      ))
+    }
 
     valid_forecasts <- !vapply(forecasts, is.null, logical(1))
     if (!any(valid_forecasts)) {
       cli::cli_abort(c(
-        "x" = "All forecast draws failed.",
-        ">" = "Likely causes: redundant/incompatible restrictions."
-      ))
+        "x" = "All forecast draws failed:",
+        summarise_draw_conditions(draw_errors, nsave)
+      ), parent = first_error)
     }
     if (!all(valid_forecasts)) {
       cli::cli_warn(c(
-        "i" = "Some forecast draws failed and were dropped.",
+        "!" = "Some forecast draws failed and were dropped:",
+        summarise_draw_conditions(draw_errors, nsave),
         ">" = "Proceeding with {sum(valid_forecasts)} of {length(forecasts)} draws."
-      ))
+      ), parent = first_error)
       forecasts <- forecasts[valid_forecasts]
     }
 
@@ -134,6 +173,81 @@ forecast_sem <- function(sys_eq, estimates,
   out
 }
 
+#' Shorten the Forecast Horizon to the Available Exogenous Data
+#'
+#' If the exogenous variables end before the forecast end date, the horizon is
+#' shortened to the number of periods with complete exogenous data, and a
+#' warning names the variables that end early.
+#'
+#' @inheritParams forecast_sem
+#'
+#' @return The (possibly shortened) forecast horizon.
+#' @keywords internal
+shorten_forecast_horizon <- function(horizon, forecast_x_matrix, forecast_dates) {
+  if (is.null(forecast_x_matrix)) {
+    return(horizon)
+  }
+
+  max_date <- max(stats::time(stats::na.omit(forecast_x_matrix)))
+  if (forecast_dates$end <= max_date) {
+    return(horizon)
+  }
+
+  horizon <- nrow(stats::na.omit(forecast_x_matrix))
+
+  # Identify variables that contain NAs
+  na_columns <- colnames(forecast_x_matrix)[apply(is.na(forecast_x_matrix), 2, any)]
+
+  # If no columns with NAs, set all columns as ending before forecast end date
+  if (length(na_columns) == 0) na_columns <- colnames(forecast_x_matrix)
+
+  cli::cli_warn(c(
+    "!" = "Forecast horizon shortened to {horizon}.",
+    ">" = "The following variables end before forecast end date: {na_columns}"
+  ))
+
+  horizon
+}
+
+#' Summarise Conditions Raised by Forecast Draws
+#'
+#' Groups condition messages by their first line and counts how often each
+#' occurred, so that a condition raised in many draws is reported once.
+#'
+#' @param messages Character vector of condition messages.
+#' @param n_draws Total number of draws.
+#'
+#' @return A named character vector of cli bullets.
+#' @keywords internal
+summarise_draw_conditions <- function(messages, n_draws) {
+  headers <- vapply(
+    strsplit(messages, "\n", fixed = TRUE),
+    function(x) if (length(x)) x[[1]] else "",
+    character(1)
+  )
+  # drop the leading cli symbol of the first line; the summary adds its own
+  symbols <- c(
+    "!", cli::symbol$cross, cli::symbol$info, cli::symbol$tick,
+    cli::symbol$arrow_right, cli::symbol$bullet
+  )
+  for (prefix in paste0(symbols, " ")) {
+    has_prefix <- startsWith(headers, prefix)
+    headers[has_prefix] <- substring(headers[has_prefix], nchar(prefix) + 1)
+  }
+
+  unique_headers <- unique(headers)
+  counts <- vapply(unique_headers, function(h) sum(headers == h), integer(1))
+
+  # escape braces so that cli does not interpolate the messages
+  unique_headers <- gsub("{", "{{", unique_headers, fixed = TRUE)
+  unique_headers <- gsub("}", "}}", unique_headers, fixed = TRUE)
+
+  stats::setNames(
+    sprintf("%d of %d draws: %s", counts, n_draws, unique_headers),
+    rep("*", length(unique_headers))
+  )
+}
+
 #' Generate a Forecast for a Single Draw
 #'
 #' This function computes a forecast for a single draw of the parameter
@@ -141,16 +255,14 @@ forecast_sem <- function(sys_eq, estimates,
 #' forecasts. It constructs the posterior distribution, companion matrix,
 #' and reduced-form representation of the system before computing forecasts.
 #'
-#' @param state An environment used to share mutable state between function
-#'   calls, particularly for issuing warnings only once during the forecasting
-#'   process.
-#'
 #' @inheritParams forecast_sem
+#' @inheritParams construct_phi
 #' @keywords internal
 forecast_draw <- function(sys_eq, estimates, jx,
                           y_matrix, forecast_x_matrix,
                           horizon, freq, forecast_dates,
-                          restrictions, state, conditional_innov_method = "projection",
+                          restrictions, phi_positions,
+                          conditional_innov_method = "projection",
                           central_tendency = NULL) {
   if (is.null(jx)) {
     # Case point forecast with option to extract mean or median estimates
@@ -164,45 +276,9 @@ forecast_draw <- function(sys_eq, estimates, jx,
     estimates <- extract_estimates_from_draws(sys_eq, estimates, jx = jx)
   }
 
-  posterior <- construct_posterior(sys_eq, estimates)
+  posterior <- construct_posterior(sys_eq, estimates, phi_positions)
   companion_matrix <- construct_companion_matrix(posterior, sys_eq$exogenous_variables)
   reduced_form <- construct_reduced_form(companion_matrix)
-
-  if (!is.null(forecast_x_matrix)) {
-    # Shorten horizon if forecast end date is after the latest available date
-    max_date <- max(stats::time(stats::na.omit(forecast_x_matrix)))
-    if (forecast_dates$end > max_date) {
-      horizon <- nrow(stats::na.omit(forecast_x_matrix))
-
-      if (!state$warning_issued) {
-        # Identify variables that contain NAs
-        na_columns <- colnames(forecast_x_matrix)[apply(is.na(forecast_x_matrix), 2, any)]
-
-        # If no columns with NAs, set all columns as ending before forecast end date
-        if (length(na_columns) == 0) na_columns <- colnames(forecast_x_matrix)
-
-        cli::cli_warn(c(
-          "!" = "Forecast horizon shortened to {horizon}.",
-          ">" = "The following variables end before forecast end date: {na_columns}"
-        ))
-        state$warning_issued <- TRUE
-      }
-    }
-  }
-  endogenous_variables <- sys_eq$endogenous_variables
-  if (!all(names(restrictions) %in% endogenous_variables)) {
-    missing <-
-      names(restrictions)[!names(restrictions) %in% endogenous_variables]
-    if (!state$warning_issued_restrictions) {
-      cli::cli_warn(c(
-        "x" = "Restriction(s) for variable(s) {.val {missing}} ignored: not found among endogenous variables.",
-        "i" = "Please ensure all restriction names match endogenous variable names exactly. See ?forecast for details."
-      ))
-      state$warning_issued_restrictions <- TRUE
-    }
-    restrictions <-
-      restrictions[names(restrictions) %in% endogenous_variables]
-  }
 
   forecast_values(
     posterior, companion_matrix, reduced_form, y_matrix, forecast_x_matrix,
@@ -385,8 +461,8 @@ forecast_values <- function(posterior, companion_matrix, reduced_form,
     if (!is.finite(cond_A) || cond_A > 1e12) {
       vars <- unique(names(restrictions))
       cli::cli_warn(c(
-        "!" = "A is ill-conditioned (kappa {signif(cond_A, 3)}).",
-        ">" = "solve(A, r) may be numerically unstable.",
+        "!" = "A is ill-conditioned.",
+        ">" = "kappa = {signif(cond_A, 3)}; solve(A, r) may be numerically unstable.",
         ">" = "Variables: {paste(vars, collapse = ', ')}."
       ))
     }

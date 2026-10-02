@@ -243,9 +243,13 @@ test_that("estimate and forecast support monthly single-frequency data", {
 })
 
 test_that("estimate and forecast support yearly single-frequency data", {
+  # Small perturbation avoids a perfect (zero-residual) fit of y on y.L(1)
+  # and x, which otherwise starves the Gibbs sampler's variance draw of
+  # degrees of freedom and makes it flaky across BLAS backends.
   y <- as_ets(
     stats::ts(
-      cumsum(seq(1, 8, by = 1)),
+      cumsum(seq(1, 8, by = 1)) +
+        c(0, 0.4, -0.3, 0.2, -0.4, 0.3, -0.2, 0.1),
       start = 2015,
       frequency = 1
     ),
@@ -638,6 +642,15 @@ test_that("forecast stops when exogenous series don't extend to forecast end", {
     "Forecast horizon shortened to 7."
   )
 
+  # restrictions beyond the shortened horizon fail once, before the draws
+  expect_error(
+    suppressWarnings(forecast(
+      estimates, dates,
+      restrictions = list(consumption = list(value = 0.5, horizon = 9))
+    )),
+    "between 1 and 7"
+  )
+
   suppressWarnings(
     result <- withr::with_seed(
       7,
@@ -663,6 +676,86 @@ test_that("forecast stops when exogenous series don't extend to forecast end", {
   print(result)
   print(result, variables = "consumption")
   print(result, variables = c("gdp", "consumption"))
+})
+
+test_that("shorten_forecast_horizon shortens to available exogenous data", {
+  forecast_dates <- list(start = 2023.25, end = 2024.75)
+  x_matrix <- stats::ts(
+    cbind(a = 1:7, b = c(1:5, NA, NA)),
+    start = c(2023, 2), frequency = 4
+  )
+
+  expect_equal(shorten_forecast_horizon(7, NULL, forecast_dates), 7)
+  expect_equal(
+    shorten_forecast_horizon(7, x_matrix[, "a", drop = FALSE], forecast_dates),
+    7
+  )
+  expect_warning(
+    horizon <- shorten_forecast_horizon(7, x_matrix, forecast_dates),
+    "shortened to 5"
+  )
+  expect_equal(horizon, 5)
+})
+
+test_that("summarise_draw_conditions groups messages by first line", {
+  messages <- c(
+    "! A is ill-conditioned.\n→ kappa = 1e13",
+    paste0(cli::symbol$cross, " A is ill-conditioned.\n→ kappa = 2e13"),
+    "value {not interpolated}"
+  )
+
+  # the leading cli symbol is dropped, so both warnings are grouped together
+  expect_equal(
+    summarise_draw_conditions(messages, 10),
+    c(
+      "*" = "2 of 10 draws: A is ill-conditioned.",
+      "*" = "1 of 10 draws: value {{not interpolated}}"
+    )
+  )
+})
+
+test_that("horizon shortening warns once with multisession futures", {
+  skip_on_cran()
+  skip_if_not_installed(c("future", "doFuture"))
+
+  old_plan <- future::plan()
+  on.exit(future::plan(old_plan), add = TRUE)
+
+  dates <- list(
+    estimation = list(start = c(1977, 1), end = c(2018, 4)),
+    forecast = list(start = c(2023, 2), end = c(2025, 4))
+  )
+  sys_eq <- system_of_equations(
+    simulated_data$equations, simulated_data$exogenous_variables
+  )
+
+  ts_data <- simulated_data$ts_data
+  ts_data[sys_eq$endogenous_variables] <-
+    lapply(sys_eq$endogenous_variables, function(x) {
+      stats::window(ts_data[[x]], end = c(2023, 1))
+    })
+
+  estimates <- withr::with_seed(
+    7,
+    estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 40)))
+  )
+  estimates$ts_data$world_gdp <-
+    stats::window(simulated_data$ts_data$world_gdp, end = c(2024, 4))
+
+  future::plan(future::multisession, workers = 2)
+
+  shortened_warnings <- 0L
+  withCallingHandlers(
+    withr::with_seed(7, forecast(estimates, dates)),
+    warning = function(w) {
+      if (grepl("shortened", conditionMessage(w))) {
+        shortened_warnings <<- shortened_warnings + 1L
+      }
+      invokeRestart("muffleWarning")
+    }
+  )
+
+  expect_equal(shortened_warnings, 1L)
 })
 
 test_that("update_anker", {
@@ -714,6 +807,53 @@ test_that("forecast with one equation", {
   out <- forecast(est, dates)
 
   expect_equal(names(out$mean), c("manufacturing", "world_gdp"))
+})
+
+test_that("forecast returns koma_ts for series originally supplied as plain ts", {
+  dates <- list(
+    estimation = list(start = c(1977, 1), end = c(2019, 4)),
+    forecast = list(start = c(2023, 2), end = c(2025, 4))
+  )
+
+  equations <- "manufacturing ~ world_gdp"
+  exogenous_variables <- c("world_gdp")
+
+  sys_eq <- system_of_equations(equations, exogenous_variables)
+
+  ts_data <- simulated_data$ts_data
+  dates_current <- c(2023, 1)
+  # shorten endogenous data to end before forecast start
+  ts_data[sys_eq$endogenous_variables] <-
+    lapply(sys_eq$endogenous_variables, function(x) {
+      stats::window(ts_data[[x]], end = dates_current)
+    })
+  # supply the endogenous series as plain ts, keep the exogenous as koma_ts
+  ts_data$manufacturing <- as.ts(ts_data$manufacturing)
+
+  expect_warning(
+    est <- withr::with_seed(
+      7,
+      estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 200)))
+    ),
+    "rate/level transformation is applied"
+  )
+  expect_identical(est$plain_ts_names, "manufacturing")
+
+  out <- forecast(est, dates)
+
+  # forecast() output stays koma_ts for every series regardless of whether
+  # the corresponding estimate() input was plain ts, since print()/format()/
+  # plot() require mean/median/quantiles to be uniformly koma_ts (as_mets()
+  # requires every series in a list to share the same attribute names).
+  expect_true(inherits(out$mean$manufacturing, "koma_ts"))
+  expect_identical(attr(out$mean$manufacturing, "series_type"), "rate")
+  expect_identical(attr(out$mean$manufacturing, "method"), "none")
+  expect_true(inherits(out$mean$world_gdp, "koma_ts"))
+  expect_true(inherits(out$median$manufacturing, "koma_ts"))
+
+  # regression test: printing a forecast that mixes plain-ts-origin and
+  # genuine koma_ts series must not error.
+  print(out)
 })
 
 test_that("forecast with one exogenous", {
@@ -1025,10 +1165,14 @@ test_that("conflicting restrictions on identity error", {
     )),
     "singular"
   )
-  expect_error(
+  # the per-draw error is reported once, with its cause and the draw count
+  err <- expect_error(
     withr::with_seed(7, forecast(est, dates, restrictions = restrictions)),
-    "All forecast draws failed"
+    "All forecast draws failed.*100 of 100 draws: .*singular"
   )
+  # and chained as parent, including the backtrace of the failed draw
+  expect_match(conditionMessage(err$parent), "singular")
+  expect_false(is.null(err$parent$trace))
 })
 
 test_that("forecast with restrictions for variables that are not in SEM", {
@@ -1073,6 +1217,59 @@ test_that("forecast with restrictions for variables that are not in SEM", {
   out <- suppressWarnings(forecast(est, dates, restrictions = restrictions))
 
   # first horizon of manufacturing should equal restriction
+  expect_equal(out$mean$manufacturing[1], 0.5)
+})
+
+test_that("density forecast with restrictions works with multisession futures", {
+  skip_on_cran()
+  skip_if_not_installed(c("future", "doFuture"))
+
+  old_plan <- future::plan()
+  on.exit(future::plan(old_plan), add = TRUE)
+
+  dates <- list(
+    estimation = list(start = c(1976, 1), end = c(2019, 4)),
+    forecast = list(start = c(2023, 2), end = c(2025, 4))
+  )
+
+  equations <- "manufacturing ~ world_gdp,
+    service ~ population + gdp,
+    gdp == 0.5*manufacturing + 0.5*service"
+  exogenous_variables <- c("world_gdp", "population")
+
+  sys_eq <- system_of_equations(equations, exogenous_variables)
+
+  ts_data <- simulated_data$ts_data
+  ts_data[sys_eq$endogenous_variables] <-
+    lapply(sys_eq$endogenous_variables, function(x) {
+      stats::window(ts_data[[x]], end = c(2023, 1))
+    })
+
+  est <- withr::with_seed(
+    7,
+    estimate(ts_data, sys_eq, dates, options = list(gibbs = list(ndraws = 40)))
+  )
+
+  future::plan(future::multisession, workers = 2)
+
+  # Call forecast() from the global environment, as a user would. The
+  # restrictions argument is then a promise on a global variable, and the
+  # global environment is not shipped to future workers.
+  assign(
+    "koma_test_restrictions",
+    list(manufacturing = list(value = 0.5, horizon = 1)),
+    envir = globalenv()
+  )
+  on.exit(rm("koma_test_restrictions", envir = globalenv()), add = TRUE)
+
+  forecast_call <- as.call(list(
+    forecast, est, dates,
+    restrictions = quote(koma_test_restrictions),
+    options = list(approximate = FALSE)
+  ))
+  out <- withr::with_seed(7, eval(forecast_call, envir = globalenv()))
+
+  expect_length(out$forecasts, 20)
   expect_equal(out$mean$manufacturing[1], 0.5)
 })
 
